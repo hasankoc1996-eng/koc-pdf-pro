@@ -126,52 +126,6 @@ programınızda yeni ileti olarak açar; siz göndermedikçe hiçbir şey gitmez
 
 Uygulamadaki **Sorun bildir** (Hakkında penceresi; Mac'te Yardım menüsü) ya da GitHub'daki **Issues** bölümü.
 
-## Kaynaktan çalıştırma
-
-Python 3.13 ya da üstü gerekir.
-
-```
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python app.py          # tarayıcıda http://127.0.0.1:5055 açılır
-```
-
-Mac uygulama penceresi (Swift + WebKit) `native/build.sh` ile derlenir; proje klasöründeki kodu çalıştırır.
-Windows başlatıcısı `packaging/windows/launcher.pyw`'dir (pywebview).
-
-```
-app.py          HTTP uç noktaları
-converters.py   Word/Excel/PDF/resim dönüştürmeleri
-tools.py        birleştir, böl, sıkıştır, şifrele, filigran, numara
-editor.py       düzenleme oturumları ve sayfa işlemleri (formlar.py, kisisel_veri.py, paragraflar.py, pdf_ortak.py)
-yedekler.py     önceki sürümler · ayarlar.py ayarlar · updater.py güncelleme denetimi
-fonts.py        PDF yazı tipini sistem yazı tipiyle eşleştirme
-udf.py          UYAP UDF okuma/yazma
-ocr.py          metin tanıma (Mac: native/ocr.swift; Windows: Windows.Media.Ocr / winrt)
-static/         arayüz (HTML/CSS/JS, internet gerektirmez); static/kilavuz/ kullanım kılavuzu
-native/         Mac uygulama penceresi
-packaging/      kurulum paketleri (Mac: PyInstaller + .pkg/.dmg; Windows: taşınabilir Python + NSIS)
-test/           uçtan uca testler: .venv/bin/python -W ignore test/backend_test.py
-```
-
-### Paket üretmek ve yayımlamak
-
-Paket üretmek ve yayımlamak ayrı adımlardır:
-- Sürüm numarası `surum.txt`'te (ör. `1.0.0`). Yeni sürümden önce artırılıp deftere kaydedilir: düzeltmelerde son
-  sayı (`1.0.1`), yeni özelliklerde ortadaki (`1.1.0`). Uygulama, Mac uygulama paketi ve Windows kurulumu numarayı
-  buradan alır; `yayinla.sh` aynı ya da daha küçük bir numarayı yayımlamaz.
-- `packaging/make_dmg.sh` ve `packaging/make_windows.sh` önce kaynağın deftere (git) kaydedildiğini ve testlerin
-  geçtiğini denetler (`packaging/denetle.sh`); biri tutmazsa paket üretilmez. Kütüphaneler her derlemede temiz ortama,
-  `packaging/bagimliliklar/mac.txt` ve `windows.txt`'teki sabit sürümlerle ve SHA-256 parmak izleriyle kurulur.
-  Paketler `~/Projeler/Koç PDF Pro Kurulum/<tarih>/` klasörüne, yanlarına derleme kaydıyla (`derleme-mac.json`,
-  `derleme-windows.json`: sürüm, git revizyonu, kütüphane listesi, test sonucu, dosyaların parmak izleri) yazılır.
-- `packaging/yayinla.sh "Yenilikler…" docs/surum-notlari/<sürüm>.md` yalnızca testleri geçmiş, kaydedilmiş
-  kaynaktan üretilmiş ve sonradan değişmemiş paketleri yayımlar; Mac ve Windows paketleri aynı revizyondan gelmelidir.
-  Kısa yenilikleri kurulu uygulama gösterir; Markdown dosyası (isteğe bağlı) GitHub'daki sürüm sayfasına yazılır.
-- Kütüphane sürümlerini değiştirmek: `packaging/bagimliliklar/*.in` düzenlenir, `packaging/kilitle.sh` çalıştırılır
-  (hepsini yükseltmek için `--upgrade`); ardından testler ve deneme kurulumu yapılır, listeler deftere kaydedilir.
-- Windows paketi yayımlanmadan önce gerçek bir Windows bilgisayarda `packaging/windows/deneme-listesi.md` geçilir.
-
 ## Lisans
 
 Koç PDF Pro özgür yazılımdır: **GNU Affero Genel Kamu Lisansı, sürüm 3** (AGPL-3.0) ile dağıtılır; tam metin
