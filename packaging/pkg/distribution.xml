@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Koç PDF Pro kurulum paketi (.pkg): uygulamayı doğrudan Uygulamalar klasörüne kurar. -->
+<installer-gui-script minSpecVersion="2">
+  <title>Koç PDF Pro</title>
+  <welcome file="hosgeldiniz.html" mime-type="text/html"/>
+  <conclusion file="tamam.html" mime-type="text/html"/>
+  <options customize="never" require-scripts="false" hostArchitectures="arm64"/>
+  <domains enable_localSystem="true"/>
+  <volume-check>
+    <allowed-os-versions><os-version min="__MINOS__"/></allowed-os-versions>
+  </volume-check>
+  <choices-outline>
+    <line choice="default"><line choice="local.pdfstudyo.app"/></line>
+  </choices-outline>
+  <choice id="default"/>
+  <choice id="local.pdfstudyo.app" visible="false"><pkg-ref id="local.pdfstudyo.app"/></choice>
+  <pkg-ref id="local.pdfstudyo.app" version="__VERSION__" onConclusion="none">KocPDFPro.pkg</pkg-ref>
+</installer-gui-script>

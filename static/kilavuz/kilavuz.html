@@ -1,0 +1,542 @@
+<!-- Koç PDF Pro kullanım kılavuzu. Uygulamada #/kilavuz ekranında gösterilir (static/ana-sayfa.js › renderGuide) ve
+     "PDF olarak kaydet" ile PDF'e dökülür (app.py › guide_pdf). Her bölüm <section class="g-part" id>, alt başlıklar
+     <section class="g-sub" id>; içindekiler listesi bunlardan çıkar. Kısayollar Mac işaretleriyle (⌘ ⇧ ⌥) yazılır,
+     Windows'ta Ctrl / Shift / Alt olarak gösterilir. Ekran görüntüleri: static/kilavuz/*.png -->
+
+<section class="g-part" id="baslarken">
+<h2>Başlarken</h2>
+<p><b>Koç PDF Pro</b>, PDF belgelerini okumak, not almak, düzenlemek, dönüştürmek ve kişisel verileri karartmak için
+bilgisayarınızda çalışan bir uygulamadır. İnternet bağlantısı gerekmez; belgeleriniz bilgisayarınızdan çıkmaz,
+hiçbir sunucuya gönderilmez.</p>
+
+<section class="g-sub" id="kurulum">
+<h3>Kurulum</h3>
+<p>Kurulum dosyasını Koç PDF Pro'nun GitHub sayfasındaki <b>Sürümler</b> (Releases) bölümünden indirin: Mac için
+<b>KocPDFPro.pkg</b>, Windows için <b>KocPDFPro-Kurulum.exe</b>.</p>
+<p><b>Mac</b> (Apple işlemcili, macOS 14 Sonoma ve sonrası):</p>
+<ol>
+  <li><b>KocPDFPro.pkg</b> dosyasına çift tıklayın.</li>
+  <li>macOS “Açılmadı” ya da “Apple doğrulayamadı” derse uyarıda <b>Bitti</b>'ye basın. <b>Sistem Ayarları › Gizlilik
+    ve Güvenlik</b> bölümünü açıp aşağıya inin: “KocPDFPro.pkg … engellendi” satırındaki <b>Yine de Aç</b> düğmesine
+    basın, parolanızı (ya da Touch ID'yi) girin ve çıkan soruda yine <b>Yine de Aç</b> deyin.</li>
+  <li>Kurulum sihirbazında <b>Devam</b> ve <b>Yükle</b>'ye basın. Uygulama <b>Uygulamalar</b> klasörüne kurulur;
+    oradan açın.</li>
+  <li>Uygulama ilk açılışta da aynı uyarıyı verirse 2. adımı “Koç PDF Pro” için yineleyin. Bu onay yalnızca bir kez
+    gerekir.</li>
+  <li>İlk Word → PDF dönüştürmesinde macOS “Microsoft Word'ü denetlemek istiyor” diye sorar: <b>Tamam</b> deyin.</li>
+</ol>
+<p><b>Windows</b> (Windows 10 ya da 11, 64 bit):</p>
+<ol>
+  <li>Edge indirirken “genellikle indirilmez” derse: indirilenler listesinde dosyanın yanındaki <b>…</b> düğmesine
+    basın, <b>Sakla</b>'yı seçin; sorulursa <b>Daha fazla göster › Yine de sakla</b>.</li>
+  <li><b>KocPDFPro-Kurulum.exe</b> dosyasına çift tıklayın. Windows “Windows bilgisayarınızı korudu” derse:
+    <b>Ek bilgi</b>'ye, ardından <b>Yine de çalıştır</b>'a basın.</li>
+  <li>Kurulum sihirbazında <b>Kur</b>'a basın. Yönetici parolası gerekmez; masaüstüne ve Başlat menüsüne kısayol
+    eklenir.</li>
+  <li>Taranmış belgelerdeki yazıları tanımak için Windows'un Türkçe “Optik karakter tanıma” bileşeni gerekir. Türkçe
+    Windows'larda genellikle hazırdır; yoksa uygulama nasıl yükleneceğini söyler
+    (bkz. <a href="#" data-to="sss">Sık sorulan sorular</a>).</li>
+</ol>
+<p class="g-tip"><b>Bu uyarılar neden çıkıyor?</b> Koç PDF Pro, Apple'ın ve Microsoft'un ücretli geliştirici imzasını
+taşımıyor; bu yüzden ilk kurulumda bir kez onay istenir. Uyarı, dosyanın bozuk ya da zararlı olduğu anlamına gelmez.
+Yine de kurulum dosyasını yalnızca Koç PDF Pro'nun GitHub sayfasından indirin.</p>
+<p class="g-tip"><b>Güncelleme:</b> yeni sürüm çıkınca sekme çubuğunda <b>Güncelleme hazır</b> görünür. Tıklayıp
+<b>İndir ve kur</b>'a basmanız yeterli: dosya indirilir, parmak izi denetlenir ve kurulum açılır (bkz.
+<a href="#" data-to="ayarlar">Ayarlar</a> › Güncelleme). Yeni sürümün kurulum dosyasını yukarıdaki gibi elle de
+çalıştırabilirsiniz. İki yolda da ayarlarınız ve imzalarınız korunur. Kaldırmak için Mac'te uygulamayı Çöp Sepeti'ne
+atın, Windows'ta <b>Ayarlar › Uygulamalar › Koç PDF Pro › Kaldır</b>.</p>
+<p class="g-tip"><b>Sürüm numarası:</b> yüklü sürüm (ör. 1.0.0) <b>Hakkında</b> penceresinde yazar. Oradaki
+<b>Güncellemeleri denetle</b> (Mac'te <b>Koç PDF Pro</b> menüsünde de var) yeni sürüm olup olmadığına hemen bakar.
+Her sürümün yenilikleri GitHub'daki <b>Sürümler</b> (Releases) sayfasındadır.</p>
+<p>Word → PDF dönüştürme için bilgisayarda Microsoft Word kurulu olmalıdır. Excel → PDF için Microsoft Excel ya da
+LibreOffice gerekir. Öbür bütün özellikler bunlar olmadan çalışır.</p>
+</section>
+
+<section class="g-sub" id="ana-sayfa">
+<h3>Ana sayfa ve ekranın bölümleri</h3>
+<p>Uygulama açılınca ana sayfa görünür. Yapmak istediğiniz işi buradaki kartlardan seçebilir ya da bir dosyayı
+doğrudan pencereye sürükleyebilirsiniz.</p>
+<figure><img src="/static/kilavuz/ana-sayfa.png" alt="Ana sayfa" loading="lazy">
+  <figcaption>Ana sayfa. Kırmızı numaralar aşağıdaki listede açıklanmıştır.</figcaption></figure>
+<ol class="g-legend">
+  <li><b>Sekmeler:</b> her belge ayrı sekmede açılır. Logoya basınca ana sayfaya dönülür.</li>
+  <li><b>Araç çubuğu:</b> kaydet, yazdır, sayfa, yakınlaştırma, not, KVKK… Belge açılınca etkinleşir.</li>
+  <li><b>Araçlar:</b> bütün araçların listesi; belge açıkken araçlar o belgeye uygulanır.</li>
+  <li><b>PDF aç:</b> bilgisayardan PDF ya da UDF açar.</li>
+  <li><b>Dosya bırakma alanı:</b> dosyayı buraya sürükleyin; uygulama ne yapmak istediğinizi sorar.</li>
+  <li><b>Araç kartları:</b> dönüştürme, birleştirme, sıkıştırma, filigran, şifre…</li>
+  <li><b>Son açılanlar:</b> en son açtığınız belgeler; tıklayınca kaldığınız sayfadan açılır.</li>
+  <li><b>Görünüm:</b> gece / gündüz modu.</li>
+  <li><b>Ayarlar</b> (<kbd>⌘,</kbd>).</li>
+  <li><b>Kullanım kılavuzu:</b> bu sayfa.</li>
+  <li><b>Hakkında:</b> sürüm numarası, güncellemeleri denetleme, iletişim, sorun bildirme.</li>
+</ol>
+</section>
+</section>
+
+<section class="g-part" id="okuma">
+<h2>PDF açma ve okuma</h2>
+
+<section class="g-sub" id="acma">
+<h3>Belge açma</h3>
+<p>Bir PDF'i açmanın birkaç yolu vardır:</p>
+<ul>
+  <li>Araç çubuğundaki <b>PDF aç</b> düğmesi (Mac'te <kbd>⌘O</kbd>). Birden çok dosya seçerseniz her biri ayrı sekmede açılır.</li>
+  <li>Dosyayı pencereye sürükleyip bırakmak.</li>
+  <li>Ana sayfadaki <b>Son açılanlar</b> listesi.</li>
+  <li>Finder'da PDF'e sağ tıklayıp <b>Birlikte Aç › Koç PDF Pro</b>.</li>
+</ul>
+<p>PDF'lere çift tıklayınca her zaman Koç PDF Pro'nun açılmasını isterseniz <b>Ayarlar › Belgeler › Varsayılan PDF
+uygulaması</b> bölümünü kullanın. UYAP Doküman Editörü belgeleri (<b>.udf</b>) de aynı şekilde açılıp okunabilir.</p>
+<p>Şifreli bir PDF açtığınızda şifresi sorulur. Taranmış (resim) bir belge açtığınızda uygulama bunu fark eder ve
+yazıları tanımayı önerir (bkz. <a href="#" data-to="ocr">Metin tanıma</a>).</p>
+</section>
+
+<section class="g-sub" id="okuyucu">
+<h3>Okuyucu ekranı</h3>
+<figure><img src="/static/kilavuz/okuyucu.png" alt="Okuyucu ekranı" loading="lazy">
+  <figcaption>Okuyucu: solda içindekiler, ortada belge.</figcaption></figure>
+<ul>
+  <li><b>Sayfalar arasında gezinme:</b> fareyle ya da dokunmatik yüzeyle kaydırın; <kbd>←</kbd> <kbd>→</kbd> önceki / sonraki
+    sayfa, <kbd>Home</kbd> <kbd>End</kbd> ilk / son sayfa. Araç çubuğundaki kutuya sayfa numarası yazıp gidebilirsiniz.</li>
+  <li><b>Yakınlaştırma:</b> <kbd>⌘+</kbd> <kbd>⌘−</kbd>, dokunmatik yüzeyde iki parmakla kıstırma ya da araç çubuğundaki
+    seçim kutusu (Genişlik, Tam sayfa, %50…%300).</li>
+  <li><b>Görünüm:</b> tek sayfa ya da iki sayfa yan yana; kaydırarak ya da sayfa sayfa okuma.</li>
+  <li><b>Yan panel:</b> araç çubuğunun en solundaki düğme. <b>Sayfalar</b> (küçük resimler), <b>İçindekiler / Yer imleri</b>
+    ve <b>Notlar</b> buradadır. İçindekileri olan belgelerde başlığa tıklayınca o yere gidilir.</li>
+  <li><b>Metin seçme ve kopyalama:</b> fareyle seçip <kbd>⌘C</kbd>. Satır sonlarındaki kopukluklar birleştirilir.</li>
+  <li><b>Kaldığınız yer:</b> belgeyi yeniden açtığınızda kaldığınız sayfadan devam edilir.</li>
+</ul>
+</section>
+
+<section class="g-sub" id="arama">
+<h3>Belgede arama ve değiştirme</h3>
+<p><kbd>⌘F</kbd> ya da araç çubuğundaki büyüteç arama kutusunu açar. Aranan kelimeyi yazıp <kbd>↵</kbd>'a basın; bulunan
+yerler sayfada işaretlenir, <kbd>↵</kbd> sonraki, <kbd>⇧↵</kbd> önceki eşleşmeye gider. Büyük/küçük harf ve şapka farkı
+gözetilmez: “ISPARTA”, “Isparta” ve “ısparta” aynı sonucu verir.</p>
+<p>Arama kutusundaki <b>Tüm açık belgelerde ara</b> düğmesi, öbür sekmelerde açık belgelerde de arar; sonuçlar belge belge
+listelenir, birine tıklayınca o belgeye geçilir.</p>
+<p>Arama kutusundaki değiştir düğmesi <b>Bul ve değiştir</b> satırını açar: aranan yazının belgedeki her geçtiği yer yeni
+metinle değiştirilir; yazı tipi, boyut ve renk korunur. Yeni metin boş bırakılırsa aranan yazı silinir.</p>
+</section>
+
+<section class="g-sub" id="sekmeler">
+<h3>Sekmeler</h3>
+<p>Her belge ayrı bir sekmede açılır. <b>+</b> ya da <kbd>⌘T</kbd> yeni sekme açar; sekmedeki <b>×</b> ya da <kbd>⌘W</kbd>
+sekmeyi kapatır. <kbd>⌃Tab</kbd> ile sekmeler arasında geçilir. Sekme adının yanındaki <b>kırmızı nokta</b> belgede
+kaydedilmemiş değişiklik olduğunu gösterir; böyle bir sekmeyi kapatırken uygulama kaydetmek isteyip istemediğinizi sorar.</p>
+</section>
+</section>
+
+<section class="g-part" id="notlar">
+<h2>Not, vurgu ve yer imi</h2>
+<p>İncelediğiniz belgede önemli yerleri işaretleyebilir, not düşebilirsiniz. Notlar ve vurgular standart PDF notu olarak
+kaydedilir; Adobe Acrobat, Önizleme ve öbür PDF programlarında da görünür.</p>
+
+<section class="g-sub" id="vurgu">
+<h3>Metni vurgulama</h3>
+<p>Fareyle bir metin seçin; seçimin hemen altında küçük bir araç çubuğu açılır:</p>
+<figure><img src="/static/kilavuz/secim-menusu.png" alt="Seçili metnin araç çubuğu" loading="lazy">
+  <figcaption>Metin seçince açılan çubuk: dört vurgu rengi, altını çiz, üstünü çiz, notlu vurgu, kopyala.</figcaption></figure>
+<ul>
+  <li><b>Vurgula:</b> dört renkten birine basın.</li>
+  <li><b>Altını çiz / Üstünü çiz.</b></li>
+  <li><b>Notlu vurgu:</b> metni vurgular ve açıklamanızı yazmanız için bir not penceresi açar.</li>
+  <li><b>Kopyala</b> (<kbd>⌘C</kbd>).</li>
+</ul>
+<p>Seçimin üzerine sağ tıklarsanız bunlara ek olarak seçili yazıyı <b>belgede ara</b> ve <b>Karart</b> da çıkar. Karart,
+seçili metni belgeden kalıcı olarak siler (bkz. <a href="#" data-to="kvkk">Kişisel verileri karartma</a>).</p>
+<p>Bir vurguya tıklayınca rengini ya da türünü değiştirebilir, not ekleyebilir ya da silebilirsiniz.</p>
+</section>
+
+<section class="g-sub" id="not-ekleme">
+<h3>Not ve yer imi ekleme</h3>
+<ul>
+  <li><b>Not:</b> araç çubuğundaki not düğmesine basın, sonra sayfada notun duracağı yere tıklayın. Ya da sayfada sağ tıklayıp
+    <b>Buraya not ekle…</b> seçin. Not penceresinde <kbd>⌘↵</kbd> kaydeder.</li>
+  <li><b>Yer imi:</b> araç çubuğundaki yer imi düğmesi bulunduğunuz sayfaya bir yer imi ekler; ad verebilirsiniz.
+    Yer imleri yan paneldeki listede görünür.</li>
+  <li><b>Notlarda adınız:</b> <b>Ayarlar › Belgeler › Adınız</b> kutusuna adınızı yazarsanız eklediğiniz not ve vurgularda yazar olarak
+    görünür.</li>
+</ul>
+<figure><img src="/static/kilavuz/notlar.png" alt="Notlar paneli" loading="lazy">
+  <figcaption>Yan paneldeki Notlar listesi: bir nota tıklayınca o yere gidilir.</figcaption></figure>
+</section>
+
+<section class="g-sub" id="not-raporu">
+<h3>Notlar ve vurgular raporu</h3>
+<p>Yan paneldeki <b>Notlar</b> listesinin üstündeki rapor düğmesi, belgedeki bütün vurgu ve notları sayfa numaralarıyla tek
+bir Word ya da PDF belgesine döker: işaretlediğiniz metin alıntı olarak, notunuz altında yer alır. Sayfa sırasıyla ya da
+renge göre sıralanabilir. İnceleme sonunda bulguları toplamak için kullanışlıdır.</p>
+</section>
+</section>
+
+<section class="g-part" id="duzenleme">
+<h2>Belgeyi düzenleme</h2>
+<p>Okuyucudaki <b>Düzenle</b> düğmesine basınca araç çubuğunun altında düzenleme araçları açılır. İşiniz bitince aynı yerde
+duran <b>Bitti</b> düğmesine basarak okumaya dönersiniz. Yaptığınız her değişiklik <kbd>⌘Z</kbd>
+ile geri alınabilir.</p>
+
+<section class="g-sub" id="duzenleme-araclari">
+<h3>Düzenleme araçları</h3>
+<figure><img src="/static/kilavuz/duzenle-araclari.png" alt="Düzenleme araçları" loading="lazy">
+  <figcaption>Düzenleme araçları. Numaralar aşağıdaki listede açıklanmıştır.</figcaption></figure>
+<ol class="g-legend">
+  <li><b>Seç:</b> eklediğiniz bir öğeyi seçip taşır, boyutunu değiştirir; <kbd>⌫</kbd> siler.</li>
+  <li><b>Metin Ekle:</b> sayfada tıkladığınız yere yeni yazı ekler; yazı tipi, boyut ve renk seçilebilir.</li>
+  <li><b>Metni Düzenle:</b> belgedeki bir paragrafa tıklayıp yazısını değiştirirsiniz; metin paragrafın içinde yeniden dizilir.</li>
+  <li><b>Beyaz Kutu:</b> sürüklediğiniz alanı beyazla kapatır ve altındaki yazıyı siler; üstüne yeni metin yazabilirsiniz.</li>
+  <li><b>Karart:</b> sürüklediğiniz alanı siyah kutuyla kapatır, altındaki yazıyı kalıcı olarak siler.</li>
+  <li><b>Vurgula:</b> metnin üzerinde sürükleyin; işaret kelimelere yapışır.</li>
+  <li><b>Çerçeve:</b> dikdörtgen çerçeve çizer.</li>
+  <li><b>Kalem:</b> serbest çizim; “Fosforlu” ile satırları boyayabilirsiniz.</li>
+  <li><b>Çizgi:</b> düz çizgi; <kbd>⇧</kbd> basılıyken yatay, dikey ya da 45°.</li>
+  <li><b>Resim:</b> bilgisayardan bir resim ekler.</li>
+  <li><b>İmza:</b> imzanızı çizer ya da resimden yükler; kaydedilen imza her seferinde yeniden kullanılır.</li>
+  <li><b>Kaşe:</b> “ASLI GİBİDİR” gibi bir yazıyı tarih ve ad soyadla birlikte kaşe olarak basar.</li>
+  <li><b>Sayfa düzeni:</b> sayfaları küçük resimler hâlinde gösterir (bkz. aşağıda).</li>
+  <li><b>Sayfa ekle:</b> başka bir PDF'in, Word ya da Excel belgesinin, resmin sayfalarını ya da boş sayfa ekler.</li>
+  <li><b>Bul ve değiştir:</b> bir yazıyı belgede geçtiği her yerde değiştirir (bkz. <a href="#" data-to="arama">Belgede arama ve değiştirme</a>).</li>
+</ol>
+<p class="g-tip"><b>İpucu:</b> sayfada herhangi bir yere sağ tıklayınca <b>Buraya metin ekle</b>, <b>Buraya imza koy</b>,
+<b>Buraya kaşe bas</b> gibi kısayollar çıkar.</p>
+<p class="g-warn"><b>Dikkat:</b> taranmış (resim) sayfalarda yazı olmadığı için <b>Metni Düzenle</b> çalışmaz. Böyle sayfalarda
+<b>Beyaz Kutu</b> ile eski yazıyı kapatıp <b>Metin Ekle</b> ile yenisini yazın.</p>
+</section>
+
+<section class="g-sub" id="imza">
+<h3>İmza ve kaşe</h3>
+<figure class="g-narrow"><img src="/static/kilavuz/imza.png" alt="İmza ekleme penceresi" loading="lazy">
+  <figcaption>İmza penceresi: fareyle ya da dokunmatik yüzeyle çizin veya imzanızın resmini yükleyin.</figcaption></figure>
+<p><b>İmza</b> aracına bastığınızda imzanızı çizebileceğiniz bir pencere açılır. İmzanızı bir kez kaydederseniz sonraki
+belgelerde tek tıkla koyabilirsiniz. Belgeye konan imzayı sürükleyerek taşıyabilir, köşesinden büyütüp küçültebilirsiniz.
+Kayıtlı imza ve kaşe <b>Ayarlar › İmza ve kaşe</b> bölümünden değiştirilir.</p>
+<p class="g-warn"><b>Not:</b> buradaki imza, kâğıttaki imzanın görüntüsüdür; <b>elektronik imza (e-imza) değildir</b>.</p>
+</section>
+
+<section class="g-sub" id="sayfa-duzeni">
+<h3>Sayfaları düzenleme</h3>
+<figure><img src="/static/kilavuz/sayfa-duzeni.png" alt="Sayfa düzeni" loading="lazy">
+  <figcaption>Sayfa düzeni: sayfaları sürükleyerek sıralayın, seçili sayfaları döndürün ya da silin.</figcaption></figure>
+<ul>
+  <li><b>Sıralama:</b> küçük resmi sürükleyip istediğiniz yere bırakın.</li>
+  <li><b>Seçme:</b> tıklayın; birden çok sayfa için <kbd>⌘</kbd> ya da <kbd>⇧</kbd> basılıyken tıklayın.</li>
+  <li><b>Döndürme, silme, çoğaltma:</b> üstteki düğmelerle ya da küçük resme sağ tıklayarak.</li>
+  <li><b>Sayfa ekleme:</b> başka bir PDF'in, Word belgesinin, resmin sayfalarını ya da boş sayfa ekleyebilirsiniz.</li>
+  <li><b>Seçili sayfaları ayrı PDF yapma:</b> seçtiğiniz sayfalar yeni bir dosya olarak kaydedilir; açık belge değişmez.</li>
+</ul>
+</section>
+
+<section class="g-sub" id="form">
+<h3>Form doldurma</h3>
+<p>Doldurulabilir alanları olan bir PDF açtığınızda üstte bir bilgi şeridi çıkar. Alanlara tıklayıp yazın; <kbd>Tab</kbd>
+sonraki alana geçer. Onay kutuları ve seçim listeleri de doldurulabilir. <b>Kaydet</b> ile değerler dosyaya işlenir.
+<b>Formu temizle</b> bütün alanları boşaltır.</p>
+</section>
+</section>
+
+<section class="g-part" id="kaydetme">
+<h2>Kaydetme, paylaşma ve yazdırma</h2>
+
+<section class="g-sub" id="kaydet">
+<h3>Kaydet ve Farklı Kaydet</h3>
+<ul>
+  <li><b>Kaydet</b> (<kbd>⌘S</kbd>): açtığınız dosyanın üzerine yazar. Dosyanın önceki hâli kaybolmaz; kendiliğinden
+    yedeklenir (bkz. <a href="#" data-to="onceki-surumler">Önceki sürümler</a>).</li>
+  <li><b>Farklı Kaydet</b> (<kbd>⇧⌘S</kbd>): yerini ve adını sizin seçtiğiniz yeni bir dosyaya kaydeder. Sonraki
+    <b>Kaydet</b>'ler bu yeni dosyaya yazar.</li>
+</ul>
+<figure class="g-narrow"><img src="/static/kilavuz/farkli-kaydet.png" alt="Farklı Kaydet penceresi" loading="lazy">
+  <figcaption>Farklı Kaydet: PDF'in yanında Word, Excel, UDF ve resim olarak da kaydedilebilir.</figcaption></figure>
+<p><b>Farklı Kaydet</b> penceresinde belgeyi <b>Word</b>, <b>Excel</b>, <b>UDF (UYAP)</b> ya da <b>resim</b> olarak da
+kaydedebilirsiniz; bunlar kopya olarak kaydedilir, açık belge değişmez. PDF seçildiğinde şu seçenekler vardır:</p>
+<ul>
+  <li><b>Notları ve işaretleri düzleştir:</b> vurgular, notlar ve form alanları sayfaya işlenir; karşı taraf silemez.</li>
+  <li><b>Küçült:</b> e-posta ve UYAP için daha küçük dosya.</li>
+  <li><b>Belge bilgilerini temizle:</b> yazar, başlık, oluşturan program gibi gizli bilgiler silinir.</li>
+  <li><b>Şifrele:</b> açmak için şifre sorulur.</li>
+</ul>
+</section>
+
+<section class="g-sub" id="onceki-surumler">
+<h3>Önceki sürümler (yedekler)</h3>
+<p>Bir dosyanın üzerine her kaydedişinizde eski hâli yedeklenir. Araç çubuğundaki saat simgeli <b>Önceki sürümler</b>
+düğmesi bu yedekleri listeler: bir yedeği yeni sekmede <b>Aç</b>abilir ya da dosyayı o hâline <b>Geri yükle</b>yebilirsiniz.
+Kaç yedeğin ne kadar süre saklanacağı <b>Ayarlar › Kaydetme ve yedek</b> bölümünden ayarlanır.</p>
+<figure class="g-narrow"><img src="/static/kilavuz/onceki-surumler.png" alt="Önceki sürümler penceresi" loading="lazy">
+  <figcaption>Önceki sürümler: her kaydedişte alınan yedekler.</figcaption></figure>
+</section>
+
+<section class="g-sub" id="paylas">
+<h3>Paylaşma, kopyalama ve yazdırma</h3>
+<ul>
+  <li><b>Paylaş:</b> belgeyi e-postayla ya da öbür uygulamalarla gönderir (Mac'te Mail, Mesajlar, AirDrop…).
+    Kaydedilmemiş değişiklik varsa belgenin ekrandaki hâli paylaşılır.</li>
+  <li><b>Dosya olarak kopyala</b> (yalnızca Mac): PDF'i dosya olarak panoya kopyalar; e-postaya, Finder'a ya da UYAP'ın
+    yükleme alanına <kbd>⌘V</kbd> ile yapıştırabilirsiniz.</li>
+  <li><b>Yazdır</b> (<kbd>⌘P</kbd>): belgenin ekrandaki hâlini yazdırır.</li>
+</ul>
+</section>
+
+<section class="g-sub" id="kurtarma">
+<h3>Kaydedilmemiş değişiklikleri kurtarma</h3>
+<p>Uygulama beklenmedik şekilde kapanırsa (elektrik kesintisi, bilgisayarın yeniden başlaması) kaydetmediğiniz değişiklikler
+kaybolmaz. Uygulama yeniden açılınca <b>Kurtarılabilir belge</b> uyarısı çıkar; belgeyi açıp kaydedebilir ya da
+silebilirsiniz. Kaydedilmemiş belgeler belirli bir süre saklanır (<b>Ayarlar › Kaydetme ve yedek</b>).</p>
+</section>
+</section>
+
+<section class="g-part" id="kvkk">
+<h2>Kişisel verileri karartma (KVKK)</h2>
+<p>Bir belgeyi paylaşmadan önce içindeki kişisel verileri (ad soyad, T.C. kimlik no, vergi kimlik no, IBAN, telefon…)
+karartabilirsiniz. Karartma, yazının üstüne yalnızca siyah kutu koymaz: <b>altındaki yazıyı belgeden siler</b>. Karartılmış
+belgeden bu bilgiler kopyalanamaz, aranamaz, geri getirilemez.</p>
+
+<section class="g-sub" id="kvkk-bul">
+<h3>Kişisel verileri bulup karartma</h3>
+<ol>
+  <li>Belgeyi okuyucuda açın ve araç çubuğundaki <b>kalkan</b> simgesine (Kişisel verileri karart) basın.</li>
+  <li>Uygulama belgeyi tarar ve bulduklarını türlerine göre listeler: ad soyad, T.C. kimlik no, vergi kimlik no, IBAN,
+    kart numarası, telefon ve e-posta. Her satırda bulunan yazı, kaç yerde geçtiği ve çevresindeki metin görünür.</li>
+  <li>Karartmak istemediklerinizin işaretini kaldırın. Listede olmayan bir adı ya da kelimeyi üstteki kutuya yazıp
+    <b>Ara</b>'ya basarak ekleyebilirsiniz.</li>
+  <li>İsterseniz <b>Belge bilgilerini de temizle</b> kutusunu işaretleyin (yazar, başlık gibi gizli bilgiler).</li>
+  <li><b>Seçilenleri karart</b>'a basın.</li>
+</ol>
+<figure><img src="/static/kilavuz/kvkk.png" alt="Kişisel verileri karart penceresi" loading="lazy">
+  <figcaption>Bulunan kişisel veriler: karartılmayacakların işaretini kaldırın.</figcaption></figure>
+<p class="g-warn"><b>Önemli:</b> ad soyadlar sık kullanılan Türkçe adlardan tanınır; nadir adlar bulunamayabilir. Vergi
+numarası denetimi başka 10 haneli numaralara (dekont, abone no) da uyabilir. <b>Karartmadan önce listeyi mutlaka gözden
+geçirin, karartmadan sonra belgeyi baştan sona kontrol edin.</b></p>
+</section>
+
+<section class="g-sub" id="kvkk-elle">
+<h3>Elle karartma</h3>
+<ul>
+  <li><b>Seçili metni karartma:</b> okuyucuda metni seçin, seçimin üzerine sağ tıklayıp <b>Karart</b>'ı seçin.</li>
+  <li><b>Alan karartma:</b> <b>Düzenle › Karart</b> aracıyla bir alanı sürükleyin (imza, kaşe, fotoğraf gibi yazı olmayan
+    yerler için de çalışır).</li>
+</ul>
+</section>
+
+<section class="g-sub" id="kvkk-kaydet">
+<h3>Karartılmış belgeyi kaydetme</h3>
+<p>Karartılmış belgeyi <b>Kaydet</b> ile özgün dosyanın üzerine yazarsanız karartılmamış hâli yalnızca yedekte kalır.
+Bu yüzden uygulama, karartılmış belgeyi kaydederken adının sonuna <b>_KVKK</b> eklenmiş ayrı bir dosya olarak kaydetmeyi
+önerir. Paylaşacağınız dosya budur; özgün dosyanız olduğu gibi kalır.</p>
+<p>Karartma <kbd>⌘Z</kbd> ile geri alınabilir; ancak kaydedilip paylaşılan karartılmış dosyadan bilgi geri getirilemez.</p>
+</section>
+</section>
+
+<section class="g-part" id="eimza">
+<h2>E-imzalı belgeler</h2>
+<p>Elektronik imzalı (e-imzalı) bir PDF açtığınızda araç çubuğunda yeşil <b>e-imzalı</b> rozeti görünür. Bu belgelerde:</p>
+<ul>
+  <li><b>Not, vurgu ve yer imi</b> imzayı bozmadan eklenir.</li>
+  <li><b>Metin ve sayfa değişiklikleri</b> e-imza doğrulamasında “belge imzadan sonra değiştirildi” olarak görünür.</li>
+  <li><b>Karartma</b> yapıldığında belge baştan yazılır ve <b>e-imza geçersiz olur</b>. Uygulama karartmadan önce bunu sorar.
+    İmzalı hâli korumak için karartılmış belgeyi <b>Farklı Kaydet</b> ile ayrı bir dosyaya kaydedin.</li>
+  <li><b>Sıkıştır</b> gibi belgeyi baştan yazan araçlar da e-imzayı geçersiz kılar; uygulama önceden uyarır.</li>
+</ul>
+<p class="g-warn"><b>Dikkat:</b> e-imzalı belgede bir bilgiyi gizlemek istiyorsanız sayfayı silmek ya da yazıyı değiştirmek
+yerine <b>Karart</b>'ı kullanın. Sayfa silme ve metin değişikliğinde, imzanın doğrulanabilmesi için eski hâl dosyanın içinde
+kalır.</p>
+</section>
+
+<section class="g-part" id="araclar">
+<h2>Araçlar</h2>
+<p>Araçlara ana sayfadaki kartlardan ya da araç çubuğundaki <b>Araçlar</b> menüsünden ulaşılır. Bir belge açıkken
+<b>Araçlar</b> menüsünden seçilen araç o belgeye uygulanır: Filigran, Sayfa No, Sıkıştır, Metin Tanıma ve Birleştir sonucu
+hemen ekranda gösterir (<kbd>⌘Z</kbd> ile geri alınır); PDF → Word, Böl, Şifrele gibi araçlar ise ayrı bir dosya üretir.
+Araç sonuçları, sizin seçtiğiniz klasöre kaydedilir.</p>
+<figure class="g-narrow"><img src="/static/kilavuz/araclar-menusu.png" alt="Araçlar menüsü" loading="lazy">
+  <figcaption>Araçlar menüsü.</figcaption></figure>
+
+<section class="g-sub" id="donustur">
+<h3>Dönüştür</h3>
+<p><b>Dönüştür</b> aracı dosyaları biçimler arasında çevirir. Dosyayı seçin ya da sürükleyin, hedef biçimi seçin:</p>
+<table>
+  <tr><th>Kaynak</th><th>Hedef</th><th>Not</th></tr>
+  <tr><td>Word (.docx, .doc, .rtf, .odt)</td><td>PDF</td><td>Microsoft Word ile, birebir görünüm.</td></tr>
+  <tr><td>Excel (.xlsx, .xls, .csv)</td><td>PDF</td><td>Bütün çalışma sayfaları tek PDF'te. Excel ya da LibreOffice gerekir.</td></tr>
+  <tr><td>PDF</td><td>Word</td><td>Düzenlenebilir belge; karmaşık sayfalarda küçük düzeltmeler gerekebilir.</td></tr>
+  <tr><td>PDF</td><td>Excel</td><td>Tablolar hücreleriyle; tutarlar sayı, tarihler tarih olarak aktarılır.</td></tr>
+  <tr><td>Resim (JPG, PNG, HEIC, TIFF…)</td><td>PDF</td><td>Birden çok resim tek PDF'te; iPhone fotoğrafları da.</td></tr>
+  <tr><td>PDF</td><td>Resim</td><td>Her sayfa ayrı resim ya da bütün sayfalar tek TIFF.</td></tr>
+  <tr><td>UDF (UYAP)</td><td>PDF ya da Word</td><td>Word gerekmez.</td></tr>
+  <tr><td>Word ya da PDF</td><td>UDF (UYAP)</td><td>UYAP'a yüklenecek belge.</td></tr>
+</table>
+<figure class="g-narrow"><img src="/static/kilavuz/donustur.png" alt="Dönüştür penceresi" loading="lazy">
+  <figcaption>Dönüştür: her dosya için hedef biçimi seçin; sonuçlar seçtiğiniz klasörde toplanır.</figcaption></figure>
+<p class="g-tip"><b>İpucu:</b> ana sayfadaki bırakma alanına bir dosya sürüklerseniz uygulama o dosyayla yapılabilecek
+işleri önerir; doğrudan seçebilirsiniz.</p>
+</section>
+
+<section class="g-sub" id="pdf-excel">
+<h3>PDF → Excel</h3>
+<p>Banka hesap dökümleri, ödeme planları, fatura listeleri gibi PDF'teki tabloları Excel'e aktarır. Çizgili tablolar
+hücreleriyle, çizgisiz ama hizalı tablolar sütunlarıyla aktarılır. Türkçe biçimdeki tutarlar (12.500,00) Excel'de sayı,
+tarihler (01.02.2026) tarih olur; böylece doğrudan toplama ve sıralama yapabilirsiniz. T.C. kimlik no, telefon gibi uzun
+numaralar yazı olarak kalır, bozulmaz.</p>
+<ul>
+  <li><b>Yalnızca tablolar</b> ya da <b>bütün sayfa</b> (tablo dışındaki satırlar da sırasıyla) seçilebilir.</li>
+  <li>Her sayfa ayrı çalışma sayfasına ya da hepsi tek çalışma sayfasına yazılabilir.</li>
+</ul>
+<figure><img src="/static/kilavuz/pdf-excel.png" alt="PDF → Excel aracı" loading="lazy">
+  <figcaption>PDF → Excel aracı.</figcaption></figure>
+<p class="g-warn"><b>Not:</b> taranmış (resim) PDF'lerde tablo okunamaz; önce <a href="#" data-to="ocr">Metin tanıma</a>
+uygulayın. Aktarılan tutarları önemli işlerde asıl belgeyle karşılaştırın.</p>
+</section>
+
+<section class="g-sub" id="uyap">
+<h3>UYAP belgeleri (UDF)</h3>
+<p>UYAP Doküman Editörü belgeleri (.udf) internet ve Word gerekmeden PDF'e ya da Word'e çevrilir; okuyucuda da açılıp
+okunabilir. Word ya da PDF belgelerinizi UYAP'a yüklemek için UDF'ye çevirebilirsiniz. Üretilen UDF'yi UYAP'a göndermeden
+önce UYAP Doküman Editörü'nde bir kez açıp kontrol edin; resimler UDF'ye aktarılmaz.</p>
+</section>
+
+<section class="g-sub" id="ocr">
+<h3>Metin tanıma (OCR)</h3>
+<p>Tarayıcıdan geçirilmiş belgelerde ve fotoğraflarda yazılar resimdir: aranamaz, seçilemez, kopyalanamaz. <b>Metin
+tanıma</b> bu yazıları tanır ve sayfanın görünümünü değiştirmeden üzerine görünmez bir metin katmanı ekler. Bundan sonra
+belgede arama yapabilir, metni seçip kopyalayabilir, PDF → Excel ve KVKK karartmasını kullanabilirsiniz.</p>
+<figure><img src="/static/kilavuz/ocr.png" alt="Taranmış belge uyarısı" loading="lazy">
+  <figcaption>Taranmış bir belge açılınca okuyucu yazıları tanımayı önerir.</figcaption></figure>
+<p>Taranmış bir belge açtığınızda okuyucu bunu fark edip <b>Metni tanı</b> düğmesini gösterir. Birden çok dosya için
+ana sayfadaki <b>Metin Tanıma (OCR)</b> aracını kullanın. Tanıma, Mac'te ve Windows'ta işletim sisteminin kendi
+motoruyla, internetsiz yapılır.</p>
+</section>
+
+<section class="g-sub" id="birlestir">
+<h3>Birleştir</h3>
+<p>PDF, Word, Excel, UDF, resim ve TIFF dosyalarını istediğiniz sırayla tek bir PDF'te birleştirir. Dosyaları seçin,
+sıralarını sürükleyerek değiştirin, <b>Birleştir</b>'e basın. Rapor ve eklerini tek dosyada toplamak için kullanışlıdır.</p>
+<figure><img src="/static/kilavuz/birlestir.png" alt="Birleştir aracı" loading="lazy">
+  <figcaption>Birleştir: dosyaların sırasını sürükleyerek değiştirin.</figcaption></figure>
+</section>
+
+<section class="g-sub" id="bol">
+<h3>Böl / Sayfa ayır</h3>
+<p>Bir PDF'i her sayfası ayrı dosya olacak şekilde, aralıklara göre (ör. <b>1-3, 4-10</b>: iki dosya) ya da her N sayfada
+bir böler; ya da seçtiğiniz sayfaları (ör. <b>2, 5-7</b>) tek bir dosya olarak çıkarır. Asıl dosya değişmez.</p>
+</section>
+
+<section class="g-sub" id="sikistir">
+<h3>Sıkıştır</h3>
+<p>E-posta ya da UYAP sınırına takılan büyük PDF'leri küçültür. Düzeyi seçin (<b>Hafif</b>, <b>Önerilen</b>, <b>Güçlü</b>
+ya da sizin belirlediğiniz <b>hedef boyut</b>); her dosyanın yeni boyutu hemen listede görünür, <b>Önizle</b> ile sayfanın
+önceki ve sonraki hâlini karşılaştırabilirsiniz. <b>Renk</b> seçeneğiyle sayfalar gri ya da siyah-beyaz yapılabilir. Güçlü
+sıkıştırma resimlerin kalitesini düşürür, yazılar etkilenmez.</p>
+<figure><img src="/static/kilavuz/sikistir.png" alt="Sıkıştır penceresi" loading="lazy">
+  <figcaption>Sıkıştır: düzeyi seçin; her dosyanın yeni boyutu hemen görünür.</figcaption></figure>
+</section>
+
+<section class="g-sub" id="sayfa-no">
+<h3>Sayfa No / Ek No</h3>
+<p>Sayfalara sayfa numarası (1, Sayfa 1 / 10…) ya da rapor ekleri için <b>Ek:1/1, Ek:1/2…</b> biçiminde ek numarası
+ekler. Birden çok dosya seçerseniz dosyalar listedeki sırayla Ek 1, Ek 2, Ek 3… olarak numaralanır. Yazı tipi (Times New
+Roman ya da Arial), boyut, renk ve konum seçilebilir; kapak sayfası numarasız bırakılabilir. Sonuç önizlemede hemen
+görünür.</p>
+<figure><img src="/static/kilavuz/sayfa-no.png" alt="Sayfa No / Ek No aracı" loading="lazy">
+  <figcaption>Sayfa No / Ek No: ek numaraları önizlemede.</figcaption></figure>
+</section>
+
+<section class="g-sub" id="filigran">
+<h3>Filigran</h3>
+<p>Sayfalara çapraz bir yazı ekler (ör. <b>ASLI GİBİDİR</b>, <b>TASLAK</b>, <b>GİZLİ</b>). Yazı, boyut, renk, saydamlık ve
+açı seçilebilir; yalnızca bazı sayfalara (ör. <b>1-3</b>) de uygulanabilir.</p>
+</section>
+
+<section class="g-sub" id="sifre">
+<h3>Şifrele / Şifre kaldır</h3>
+<p><b>Şifrele</b>, PDF'e açılış şifresi koyar (AES-256); şifreyi bilmeyen açamaz. Yazdırmaya ve metin kopyalamaya izin
+verilip verilmeyeceğini de seçebilirsiniz. Şifreyi unutursanız belge açılamaz; şifreyi güvenli bir yerde saklayın.
+<b>Şifre kaldır</b>, şifresini bildiğiniz bir PDF'ten korumayı kaldırır.</p>
+</section>
+
+<section class="g-sub" id="karsilastir">
+<h3>Karşılaştır</h3>
+<p>Bir belgenin iki sürümünü (PDF, Word, Excel ya da UDF) karşılaştırır: eski sürümden silinen yerler <b>kırmızı</b>,
+yeni sürümde eklenen yerler <b>yeşil</b> boyanır. Sonuç belgesinin ilk sayfasında değişiklik listesi, ardından eski ve
+yeni sayfalar yan yana yer alır. Bir kanunun eski ve yeni metnini, sözleşme ya da rapor taslaklarını karşılaştırmak için
+kullanılır.</p>
+<figure><img src="/static/kilavuz/karsilastir.png" alt="Karşılaştırma sonucu" loading="lazy">
+  <figcaption>6698 sayılı Kanunun 18. maddesinin 2024 öncesi ve güncel metni: silinenler kırmızı, eklenenler yeşil.</figcaption></figure>
+</section>
+</section>
+
+<section class="g-part" id="ayarlar">
+<h2>Ayarlar</h2>
+<p>Ayarlar penceresi sekme çubuğunun sağındaki dişli düğmesiyle ya da <kbd>⌘,</kbd> ile açılır.</p>
+<figure><img src="/static/kilavuz/ayarlar.png" alt="Ayarlar penceresi" loading="lazy">
+  <figcaption>Ayarlar penceresi.</figcaption></figure>
+<table>
+  <tr><th>Bölüm</th><th>Neler var</th></tr>
+  <tr><td>Görünüm</td><td>Gece / gündüz modu, arayüz büyüklüğü, tek / iki sayfa, kaydırma.</td></tr>
+  <tr><td>Belgeler</td><td>Notlarda görünecek adınız, kaldığınız sayfadan açma, son açılanlar listesi, varsayılan PDF uygulaması.</td></tr>
+  <tr><td>Kaydetme ve yedek</td><td>Farklı Kaydet'in açacağı klasör, yedek sayısı ve süresi, kurtarılabilir belgelerin süresi.</td></tr>
+  <tr><td>İmza ve kaşe</td><td>Kayıtlı imzanız ve kaşeniz.</td></tr>
+  <tr><td>Güncelleme</td><td>Yüklü sürüm, yeni sürümü kendiliğinden denetleme, şimdi denetle, sürüm notları.</td></tr>
+  <tr><td>Depolama</td><td>Geçici dosyaların ve yedeklerin kapladığı yer, temizleme.</td></tr>
+</table>
+</section>
+
+<section class="g-part" id="kisayollar">
+<h2>Klavye kısayolları</h2>
+<p>En sık kullanılanlar aşağıdadır. Tam liste için <kbd>⌘/</kbd> tuşlarına basın.</p>
+<table>
+  <tr><th>Kısayol</th><th>İşlev</th></tr>
+  <tr><td><kbd>⌘O</kbd></td><td>PDF aç (Mac)</td></tr>
+  <tr><td><kbd>⌘S</kbd> · <kbd>⇧⌘S</kbd></td><td>Kaydet · Farklı Kaydet</td></tr>
+  <tr><td><kbd>⌘P</kbd></td><td>Yazdır</td></tr>
+  <tr><td><kbd>⌘Z</kbd> · <kbd>⇧⌘Z</kbd></td><td>Geri al · Yinele</td></tr>
+  <tr><td><kbd>⌘F</kbd></td><td>Belgede ara</td></tr>
+  <tr><td><kbd>⌘T</kbd> · <kbd>⌘W</kbd></td><td>Yeni sekme · Sekmeyi kapat</td></tr>
+  <tr><td><kbd>←</kbd> <kbd>→</kbd> · <kbd>Home</kbd> <kbd>End</kbd></td><td>Önceki / sonraki sayfa · İlk / son sayfa</td></tr>
+  <tr><td><kbd>⌘+</kbd> · <kbd>⌘−</kbd> · <kbd>⌘0</kbd></td><td>Yakınlaştır · Uzaklaştır · Genişliğe sığdır</td></tr>
+  <tr><td><kbd>⌘,</kbd></td><td>Ayarlar</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>Pencereyi, menüyü ya da aracı kapat</td></tr>
+</table>
+</section>
+
+<section class="g-part" id="sss">
+<h2>Sık sorulan sorular</h2>
+
+<section class="g-sub" id="sss-internet">
+<h3>Belgelerim bir yere gönderiliyor mu?</h3>
+<p>Hayır. Bütün işlemler bilgisayarınızda yapılır; uygulama internet olmadan çalışır. İnternet yalnızca yeni sürüm
+denetimi için kullanılır, bu da <b>Ayarlar › Güncelleme</b> bölümünden kapatılabilir.</p>
+</section>
+
+<section class="g-sub" id="sss-word">
+<h3>Word → PDF çalışmıyor</h3>
+<p>Word → PDF dönüştürmesi bilgisayardaki Microsoft Word'ü kullanır; Word kurulu değilse çalışmaz. Mac'te ilk
+dönüştürmede çıkan “Microsoft Word'ü denetlemek istiyor” sorusuna <b>Tamam</b> deyin. Yanlışlıkla reddettiyseniz
+<b>Sistem Ayarları › Gizlilik ve Güvenlik › Otomasyon</b> bölümünden Koç PDF Pro için Microsoft Word iznini açın.</p>
+</section>
+
+<section class="g-sub" id="sss-ocr">
+<h3>Windows'ta metin tanıma “Türkçe paket yok” diyor</h3>
+<p><b>Ayarlar › Saat ve dil › Dil ve bölge › Türkçe › Dil seçenekleri</b> bölümünde <b>Optik karakter tanıma</b>
+bileşenini yükleyin ve uygulamayı yeniden açın.</p>
+</section>
+
+<section class="g-sub" id="sss-degisti">
+<h3>“Dosya siz çalışırken değiştirilmiş” uyarısı</h3>
+<p>Açtığınız dosya bu sırada başka bir programda değiştirilmiş ya da taşınmıştır. Üzerine yazarsanız öbür programdaki
+değişiklikler kaybolur. Emin değilseniz <b>Farklı Kaydet</b> ile ayrı bir dosyaya kaydedin.</p>
+</section>
+
+<section class="g-sub" id="sss-metin">
+<h3>Metni Düzenle bazı belgelerde çalışmıyor</h3>
+<p>Taranmış (resim) sayfalarda düzenlenecek yazı yoktur. Eski yazıyı <b>Beyaz Kutu</b> ile kapatıp <b>Metin Ekle</b> ile
+yenisini yazın. Düzenlenen metin, özgün yazı tipine en yakın yazı tipiyle aynı boyut ve renkte yazılır.</p>
+</section>
+
+<section class="g-sub" id="sss-sorun">
+<h3>Bir sorunla karşılaştım</h3>
+<p>Sekme çubuğundaki <b>Hakkında</b> düğmesi › <b>Sorun bildir…</b> ile sorunu anlatan bir e-posta hazırlanır.
+Uygulamanın sürümü, sistem bilgisi ve uygulama kaydının son satırları kendiliğinden eklenir; belgelerinizin içeriği
+eklenmez. E-postayı göndermeden önce görebilirsiniz.</p>
+</section>
+</section>

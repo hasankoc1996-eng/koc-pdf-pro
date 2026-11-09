@@ -1,0 +1,15 @@
+# Windows paketinin (make_windows.sh) kütüphaneleri: uygulamanınkiler, Word/Excel otomasyonu, uygulama penceresi
+# (pywebview) ve Windows'un yerleşik metin tanıması (winrt).
+# Sürümler windows.txt'te dolaylı bağımlılıklarıyla ve parmak izleriyle sabittir; değiştirmek için packaging/kilitle.sh
+-r ../../requirements.txt
+comtypes
+colorama
+pywebview>=6.2,<7
+winrt-runtime>=3.2,<4
+winrt-Windows.Media.Ocr>=3.2,<4
+winrt-Windows.Graphics.Imaging>=3.2,<4
+winrt-Windows.Storage>=3.2,<4
+winrt-Windows.Storage.Streams>=3.2,<4
+winrt-Windows.Foundation>=3.2,<4
+winrt-Windows.Foundation.Collections>=3.2,<4
+winrt-Windows.Globalization>=3.2,<4

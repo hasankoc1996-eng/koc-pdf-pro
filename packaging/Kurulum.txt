@@ -1,0 +1,35 @@
+KOÇ PDF PRO — KURULUM
+=====================
+
+Gereksinimler
+  • Apple işlemcili Mac (M1, M2, M3, M4 …)
+  • macOS 14 (Sonoma) veya daha yenisi
+  • Word → PDF dönüştürme için Microsoft Word (diğer tüm özellikler Word olmadan çalışır)
+  • İnternet ve yapay zekâ gerekmez; dosyalarınız bilgisayardan çıkmaz.
+
+1) Kurulum
+  "Koç PDF Pro" simgesini yandaki "Uygulamalar" klasörüne sürükleyin. Sonra masaüstündeki
+  "Koç PDF Pro" diskini çıkarın ve uygulamayı Uygulamalar klasöründen açın.
+  Uygulamayı bu diskin içinden açmayın: disk çıkarılınca uygulama da kapanır.
+  Daha kolayı: aynı yerdeki "Koç PDF Pro.pkg" kurulum paketini kullanın; doğrudan Uygulamalar'a kurar,
+  masaüstünde disk kalmaz.
+
+2) İlk açılış (bir kerelik)
+  Uygulama Apple'a kayıtlı bir geliştirici imzası taşımadığı için macOS ilk açılışta
+  "Koç PDF Pro açılmadı" / "Apple doğrulayamadı" uyarısı verir. Şöyle açın:
+    a. Uyarıda "Bitti"ye basın.
+    b. Sistem Ayarları › Gizlilik ve Güvenlik bölümüne gidin.
+    c. Aşağıda "Koç PDF Pro engellendi" satırındaki "Yine de Aç" düğmesine basın,
+       parolanızı girin ve açılan pencerede yine "Yine de Aç"ı seçin.
+  Bundan sonra uygulama normal şekilde açılır.
+
+3) Word izni
+  İlk Word → PDF dönüştürmesinde macOS "Microsoft Word'ü denetlemek istiyor" diye sorar → Tamam.
+
+4) PDF'leri bu uygulamayla açmak
+  Uygulamada PDF Okuyucu ekranındaki "Varsayılan PDF uygulaması yap" düğmesine basın.
+  ya da: Finder'da bir PDF › Bilgi Al › Birlikte Aç › Koç PDF Pro › Tümünü Değiştir.
+
+Lisans
+  Koç PDF Pro açık kaynaktır, GNU AGPL-3.0 lisansıyla dağıtılır.
+  Kaynak kodu: https://github.com/hasankoc1996-eng/koc-pdf-pro

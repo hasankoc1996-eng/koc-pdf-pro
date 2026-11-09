@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>Koç PDF Pro</title>
+  <link rel="icon" href="/static/logo.png" type="image/png">
+  <style>
+    /* Windows uygulama penceresi: her sekme ayrı bir bölmede; sekme çubuğunu bölmedeki sayfa çizer */
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #e4e6ea; }
+    @media (prefers-color-scheme: dark) { html, body { background: #0d0f11; } }
+    #frames, iframe { width: 100%; height: 100%; border: 0; display: block; }
+    iframe[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <div id="frames"></div>
+  <script src="/static/shell.js"></script>
+</body>
+</html>

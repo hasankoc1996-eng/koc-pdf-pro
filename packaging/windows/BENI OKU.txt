@@ -1,0 +1,54 @@
+﻿KOÇ PDF PRO — WINDOWS KURULUMU
+==============================
+
+Gereksinimler
+  • Windows 10 veya 11 (64 bit)
+  • Word → PDF dönüştürme için Microsoft Word (diğer tüm özellikler Word olmadan çalışır)
+  • İnternet ve yapay zekâ gerekmez; dosyalarınız bilgisayardan çıkmaz.
+
+KURULUM VE GÜNCELLEME (önerilen)
+  "Koç PDF Pro Kurulum.exe" dosyasına çift tıklayın ve "Kur"a basın. Yönetici parolası gerekmez.
+  Masaüstüne ve Başlat menüsüne kısayol eklenir; uygulama Ayarlar › Uygulamalar listesinde görünür.
+  Güncellemek için yeni sürümün kurulum dosyasını aynı şekilde çalıştırın: uygulama açıksa kapatılır
+  (önce uyarır), eskisinin üzerine kurulur, ayarlarınız korunur.
+  Windows "Windows bilgisayarınızı korudu" derse: "Ek bilgi" › "Yine de çalıştır".
+  Kaldırmak için: Ayarlar › Uygulamalar › Koç PDF Pro › Kaldır.
+
+ZIP İLE KURULUM (alternatif)
+1) ZIP'i çıkarın
+  ZIP dosyasına sağ tıklayın › "Tümünü ayıkla" › kalıcı bir yer seçin (örneğin Belgeler).
+  İçinden "KocPDFPro" klasörü çıkar. ZIP'in içinden doğrudan çalıştırmayın.
+
+2) Kurulum
+  KocPDFPro klasöründeki "Kurulum.bat" dosyasına çift tıklayın; kısayollar eklenir ve uygulama açılır.
+
+3) Kullanım
+  Masaüstündeki "Koç PDF Pro" kısayoluyla açın. Uygulama kendi penceresinde, görev çubuğunda koç simgesiyle açılır
+  (Edge tarayıcısı açılmaz). Pencereyi kapatınca uygulama da kapanır.
+  Kurulum yapmadan denemek için klasördeki "Baslat.bat" da kullanılabilir.
+
+Sekmeler ve kaydetme
+  • Her PDF ayrı bir sekmede açılır: "+" ya da Ctrl+T yeni sekme, × ya da Ctrl+W sekmeyi kapatır,
+    Ctrl+Tab sekmeler arasında geçer. Kırmızı nokta kaydedilmemiş değişiklik demektir.
+  • Kaydet (Ctrl+S) açtığınız dosyanın üzerine yazar (eski hâli yedeklenir);
+    Farklı Kaydet (Ctrl+Shift+S) Windows'un kayıt penceresini açar.
+  • PDF'e sağ tıklayıp "Birlikte aç" › Koç PDF Pro ile ya da PDF'i kısayolun üzerine sürükleyerek de açabilirsiniz.
+
+Metin tanıma (taranmış belgeler)
+  • Taranmış PDF'lerdeki ve fotoğraflardaki yazılar Windows'un kendi metin tanımasıyla aranabilir hâle getirilir
+    (internet gerekmez). Türkçe Windows'larda Türkçe tanıma genellikle hazırdır.
+  • Uygulama "Türkçe tanıma paketi yüklü değil" derse: Ayarlar › Saat ve dil › Dil ve bölge › Türkçe ›
+    Dil seçenekleri › "Optik karakter tanıma" bileşenini yükleyip uygulamayı yeniden açın.
+
+Bilmeniz gerekenler
+  • Pencere, Windows 10/11'de hazır bulunan "Microsoft Edge WebView2" bileşenini kullanır (Outlook ve Teams de kullanır).
+    Bu bileşen bilgisayarda yoksa uygulama kendiliğinden eski yönteme, Edge'in uygulama penceresine geçer;
+    o durumda sekmeler olmaz ve dosyalar tarayıcının kaydetme penceresiyle kaydedilir.
+    Bileşeni kurmak için: https://developer.microsoft.com/microsoft-edge/webview2/ ("Evergreen Bootstrapper").
+  • ZIP ile kurduysanız ve klasörü taşırsanız Kurulum.bat'ı yeniden çalıştırın.
+    Kurulum programına geçtiyseniz eski KocPDFPro klasörünü silebilirsiniz (kısayollar yeni kuruluma döner).
+  • Sorun olursa günlük dosyası: %LOCALAPPDATA%\KocPDFPro\log.txt
+
+Lisans
+  Koç PDF Pro açık kaynaktır, GNU AGPL-3.0 lisansıyla dağıtılır.
+  Kaynak kodu: https://github.com/hasankoc1996-eng/koc-pdf-pro

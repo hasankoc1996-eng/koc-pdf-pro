@@ -1,0 +1,16 @@
+# Git'in deftere yazmayacağı dosyalar.
+
+# Bu bilgisayara özel ya da kendiliğinden oluşan dosyalar
+.venv/
+__pycache__/
+.DS_Store
+.claude/
+
+# Testlerin her çalıştığında yeniden ürettiği çıktılar
+test/.veri/
+test/birlesik.pdf
+test/duzenlenmis.pdf
+test/filigran.pdf
+test/numarali.pdf
+test/resim.png
+test/sifreli.pdf

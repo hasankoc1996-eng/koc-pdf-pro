@@ -1,0 +1,4 @@
+# Mac paketinin (make_dmg.sh) kütüphaneleri: uygulamanınkiler ve paketleyici (PyInstaller).
+# Sürümler mac.txt'te dolaylı bağımlılıklarıyla ve parmak izleriyle sabittir; değiştirmek için packaging/kilitle.sh
+-r ../../requirements.txt
+pyinstaller

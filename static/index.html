@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Koç PDF Pro</title>
+  <link rel="icon" href="/static/logo.png" type="image/png">
+  <script>
+    // Görünüm modunu sayfa çizilmeden uygula. Mac uygulamasında seçim uygulamanın kendisinde saklanır.
+    try {
+      var theme = window.PDFSTUDYO_THEME || localStorage.getItem('pdfstudyo.theme') || 'auto';
+      if (window.PDFSTUDYO_THEME) localStorage.setItem('pdfstudyo.theme', theme);
+      document.documentElement.dataset.theme = theme;
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="titlebar" id="titlebar" hidden>Koç PDF Pro</div>
+  <div class="tabstrip" id="tabstrip"></div>
+  <div class="app">
+    <main id="main"></main>
+  </div>
+
+  <div id="busy" class="busy" hidden>
+    <div class="busy-card"><div class="spinner"></div><div id="busy-text">İşleniyor…</div></div>
+  </div>
+  <div id="toasts" class="toasts"></div>
+  <div id="modal-root"></div>
+
+  <input type="file" id="hidden-file" hidden>
+  <script src="/static/app.js"></script>
+  <script src="/static/kaydet.js"></script>
+  <script src="/static/cubuklar.js"></script>
+  <script src="/static/pencereler.js"></script>
+  <script src="/static/araclar.js"></script>
+  <script src="/static/dosya-pencereleri.js"></script>
+  <script src="/static/sikistir-bol.js"></script>
+  <script src="/static/ana-sayfa.js"></script>
+  <script src="/static/editor.js"></script>
+  <script src="/static/reader.js"></script>
+</body>
+</html>
