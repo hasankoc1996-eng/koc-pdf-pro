@@ -48,6 +48,8 @@ Bir şey ters giderse günlük dosyası: `%LOCALAPPDATA%\KocPDFPro\log.txt` (Dos
 - [ ] Dosya Gezgini'nde bir PDF'e sağ tık › **Birlikte aç › Koç PDF Pro** → okuyucuda açılır.
 - [ ] Uygulama kapalıyken aynı yolla açın → uygulama açılır ve PDF gelir.
 - [ ] Uygulama açıkken başka bir PDF'i aynı yolla açın → aynı pencerede yeni sekmede açılır.
+- [ ] Uygulama açıkken art arda 3–4 PDF'e birer birer çift tıklayın → her biri bir iki saniye içinde aynı pencerede
+      açılır; hiçbiri beklemez. (1.0.0 öncesi denemede ikinciden sonrakiler 60 saniye bekliyordu.)
 - [ ] PDF'i pencereye sürükleyip bırakın → açılır.
 - [ ] Bir `.udf` (UYAP) dosyasını açın → okunur.
 - [ ] **Ayarlar › Belgeler › Varsayılan PDF uygulaması** → Windows'un varsayılan uygulamalar ayarı açılır; orada seçince

@@ -183,22 +183,44 @@ function finish() {{
 
 class Starter:
     """Motoru başlatır. Başlatma kilidini motor yanıt verince bırakır: aynı anda yapılan ikinci açılış
-    beklerken motor hazırlanır, sonra ikinci açılış açık pencereye yönelir (semaphore: her iş parçacığı bırakabilir)."""
+    beklerken motor hazırlanır, sonra ikinci açılış açık pencereye yönelir (semaphore: her iş parçacığı bırakabilir).
+    Semaphore'u alan süreç kapanınca kilit kendiliğinden boşalmaz: kilidi alan her yol bırakmalı (bkz. main)."""
 
     def __init__(self):
         self.lock = ctypes.windll.kernel32.CreateSemaphoreW(None, 1, 1, START_LOCK)
-        ctypes.windll.kernel32.WaitForSingleObject(self.lock, 60000)
-        self.released = False
+        self.released = True        # kilit alınınca False (alınmamış kilit bırakılmaz)
         self.server = None
-        self.started_here = False
+        self.started_here = False   # motoru bu açılış yükleyecek (açık bir motor yoktu)
+        self.launched = False       # motorun yüklenmesi başladı mı
         self.failed = None          # motor yüklenemediyse hatanın ayrıntısı
         self.host_open = None       # pencere açılınca: sonraki başlatmaların gönderdiği belgeleri açar
         self.mutex = threading.Lock()
+
+    def acquire(self, give_up, timeout=60):
+        """Başlatma sırasını bekler. Beklerken yarım saniyede bir give_up() sorulur: True dönerse (belgeler açık
+        pencereye devredildi) sıra alınmadan False döner. Böylece kilit bir sebeple boşalmamış olsa da açık pencere
+        varken beklenmez. Sıra gelirse ya da süre dolarsa True; süre dolunca da alınmış sayılır ki bırakılınca
+        takılı kalmış kilit düzelsin."""
+        end = time.time() + timeout
+        while ctypes.windll.kernel32.WaitForSingleObject(self.lock, 500) != 0:   # 0: sıra geldi
+            if give_up():
+                return False
+            if time.time() >= end:
+                log(f"Başlatma sırası {timeout} saniyede gelmedi; yine de devam ediliyor.")
+                break
+        self.released = False
+        return True
 
     def release(self):
         if not self.released:
             self.released = True
             ctypes.windll.kernel32.ReleaseSemaphore(self.lock, 1, None)
+
+    def start(self):
+        """Motoru bu açılış yükleyecekse yüklemeyi bir kez başlatır (pencere göründükten sonra; bkz. native_window)."""
+        if self.started_here and not self.launched:
+            self.launched = True
+            start_server(self)
 
     def connect(self, host_open):
         """Pencere hazır: bundan sonraki başlatmaların gönderdiği belgeler bu pencerede açılsın. Motor henüz
@@ -728,16 +750,21 @@ def main():
         build = "kaynak"
     log(f"Başlatıcı açıldı (sürüm {build}, açılacak belge: {len(open_paths)}).")
 
-    # Aynı anda iki kez başlatılırsa (ör. çift tıklama) sırayla: ikincisi ilkinin açtığı pencereye yönelir
+    # Aynı anda iki kez başlatılırsa (ör. çift tıklama) sırayla: ikincisi ilkinin açtığı pencereye yönelir.
+    # Sıra beklenirken de açık pencere aranır: varsa belgeler hemen ona gider.
     starter = Starter()
+    if not starter.acquire(give_up=lambda: alive() and hand_over(open_paths)):
+        log("Açık pencereye devredildi.")
+        os._exit(0)
     if alive():
         if hand_over(open_paths):
             log("Açık pencereye devredildi.")
+            starter.release()      # bırakılmazsa sonraki açılışlar sırayı 60 saniye bekliyordu
             os._exit(0)
         starter.release()          # motor başka bir pencerenin; ona bağlan
     else:
-        start_server(starter)   # arka planda: pencere açılış ekranıyla hemen açılsın
         starter.started_here = True
+        starter.start()            # arka planda: pencere açılış ekranıyla hemen açılsın
 
     try:
         native_window(open_paths, starter)
