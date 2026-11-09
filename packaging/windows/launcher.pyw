@@ -659,7 +659,8 @@ def start_error(starter):
 
 def native_window(open_paths, starter):
     """Uygulamanın kendi penceresi; kapanana kadar bekler. Açılamazsa istisna fırlatır.
-    Pencere hemen açılış ekranıyla açılır; motor hazır olunca sekme kabuğu (uygulama) yüklenir."""
+    Pencere hemen açılış ekranıyla açılır, motor ondan sonra yüklenir; motor hazır olunca sekme kabuğu (uygulama)
+    yüklenir."""
     import webview
     from webview.platforms import winforms   # pythonnet ve WebView2 bileşenlerini yükler
     if not getattr(winforms, "is_chromium", False):
@@ -681,16 +682,22 @@ def native_window(open_paths, starter):
         background_color="#15171A" if dark else "#F4F5F7")
     host._window = window
     shown = threading.Event()
+    splash = threading.Event()          # açılış ekranı (logo) pencereye çizildi
     window.events.shown += shown.set
     window.events.shown += lambda: log("Pencere göründü.")
+    window.events.loaded += splash.set
     window.events.closing += host._on_closing
     window.events.loaded += host._on_loaded
     webview.settings["ALLOW_DOWNLOADS"] = True
 
     def boot():
-        """Pencere açıldı: motor hazır olana (ve açılış ekranı en az kısa bir süre görünene) kadar bekle."""
+        """Pencere açıldı: motoru yükle; motor hazır olana (ve açılış ekranı en az kısa bir süre görünene) kadar bekle.
+        Motor açılış ekranı çizildikten sonra yüklenir: pencereyle aynı anda yüklenince Python ikisini sırayla
+        işlediğinden ikisi de geç bitiyordu (Windows denemesinde logo motorla birlikte 7,6. saniyede göründü)."""
         if not shown.wait(20):
             log("Pencere 20 saniyede görünmedi; yine de devam ediliyor.")
+        splash.wait(3)
+        starter.start()
         t0 = time.time()
         if not starter.wait_ready():
             host._gave_up = True
@@ -763,17 +770,18 @@ def main():
             os._exit(0)
         starter.release()          # motor başka bir pencerenin; ona bağlan
     else:
-        starter.started_here = True
-        starter.start()            # arka planda: pencere açılış ekranıyla hemen açılsın
+        starter.started_here = True   # motor, açılış ekranı göründükten sonra yüklenir (native_window › boot)
 
     try:
         native_window(open_paths, starter)
     except Exception:
         log("Uygulama penceresi açılamadı; Edge penceresi kullanılıyor:\n" + traceback.format_exc())
+        starter.start()            # pencere görünmeden düştüyse motor henüz yüklenmemiştir
         if not starter.wait_ready():
             message(start_error(starter))
             os._exit(1)
         edge_window(starter.started_here)
+    starter.release()              # pencere açılış ekranındayken kapatıldıysa sıra hâlâ bu açılıştadır
     os._exit(0)
 
 

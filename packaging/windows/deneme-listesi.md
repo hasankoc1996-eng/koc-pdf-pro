@@ -30,8 +30,8 @@ Bir şey ters giderse günlük dosyası: `%LOCALAPPDATA%\KocPDFPro\log.txt` (Dos
       (Edge sekmesi değil). Görev çubuğunda Koç PDF Pro simgesi görünür.
 - [ ] **Açılış hızı:** bilgisayarı yeniden başlatın, Koç PDF Pro'yu açın → logo ekranı tıkladıktan sonra bir iki saniye
       içinde görünür (motor arkada yüklenirken boş ekran beklenmez). Günlük dosyasında her satırın başında
-      `[+… sn]` yazar: “Pencere göründü”, “Motor yüklendi” ve “Uygulama yüklendi” satırlarındaki saniyeleri not edin.
-      Aynısını ikinci açılışta da yapın.
+      `[+… sn]` yazar: “Pencere göründü”, “Motor yüklendi” ve “Uygulama yüklendi” satırlarındaki saniyeleri not edin;
+      “Pencere göründü” en önde gelir. Aynısını ikinci açılışta da yapın.
 - [ ] Kurulumdan (ya da güncellemeden) hemen sonraki ilk açılış da sonrakiler kadar hızlı: Python dosyaları hazır
       (derlenmiş) gelir. `%LOCALAPPDATA%\Programs\KocPDFPro\python\Lib\site-packages\flask\__pycache__` klasöründe
       `.pyc` dosyaları vardır.
