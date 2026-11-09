@@ -79,8 +79,11 @@ mkdir -p "$ROOT/Applications"
 APP_NAME_NFD=$(python3 -c "import unicodedata; print(unicodedata.normalize('NFD', 'Koç PDF Pro.app'))")
 ditto "$APP" "$ROOT/Applications/$APP_NAME_NFD"
 pkgbuild --analyze --root "$ROOT" "$WORK/components.plist" >/dev/null
-# Her zaman /Applications'a kur: bilgisayarda başka bir kopya (ör. açık DMG diski) varsa oraya yönelmesin
-/usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" "$WORK/components.plist"
+# Her zaman /Applications'a kur: bilgisayarda başka bir kopya (ör. açık DMG diski) varsa oraya yönelmesin.
+# macOS 27'nin pkgbuild'i bu anahtarı yazmıyor (orada varsayılanı zaten false); eski macOS'larda varsayılan true
+# olduğu için açıkça yazılır. Önce silinir: anahtar varsa "Add" hata verir, yoksa "Set" hata verir.
+/usr/libexec/PlistBuddy -c "Delete :0:BundleIsRelocatable" "$WORK/components.plist" >/dev/null 2>&1 || true
+/usr/libexec/PlistBuddy -c "Add :0:BundleIsRelocatable bool false" "$WORK/components.plist"
 pkgbuild --quiet --root "$ROOT" --component-plist "$WORK/components.plist" --identifier local.pdfstudyo.app \
   --version "$VERSION" --install-location / "$WORK/KocPDFPro.pkg"
 sed -e "s/__MINOS__/$MINOS/" -e "s/__VERSION__/$VERSION/" "$HERE/pkg/distribution.xml" > "$WORK/distribution.xml"
