@@ -142,8 +142,8 @@ def process_path(pid):
         k.CloseHandle(handle)
 
 
-def has_window(pid):
-    """Sürecin görünür bir penceresi var mı (açık, çalışan bir Koç PDF Pro penceresi kapatılmasın)."""
+def windows_of(pid, first=False):
+    """Sürecin görünür üst pencereleri (first: ilkini bulunca durur)."""
     user32 = ctypes.WinDLL("user32")
     proc = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
     user32.EnumWindows.argtypes = (proc, ctypes.c_void_p)
@@ -156,10 +156,42 @@ def has_window(pid):
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
         if owner.value == pid and user32.IsWindowVisible(hwnd):
             found.append(hwnd)
-            return False
+            return not first
         return True
     user32.EnumWindows(proc(each), None)
-    return bool(found)
+    return found
+
+
+def has_window(pid):
+    """Sürecin görünür bir penceresi var mı (açık, çalışan bir Koç PDF Pro penceresi kapatılmasın)."""
+    return bool(windows_of(pid, first=True))
+
+
+def close_windows(pid):
+    """Sürecin pencerelerine "kapan" der (kullanıcı kapatmış gibi; sayfa kaydedilmemiş değişiklik için sorabilir)."""
+    user32 = ctypes.WinDLL("user32")
+    user32.PostMessageW.argtypes = (ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p)
+    for hwnd in windows_of(pid):
+        user32.PostMessageW(hwnd, 0x0010, None, None)   # WM_CLOSE
+    return True
+
+
+def wait_for_exit(pid, seconds):
+    """Önceki kopyanın (yeniden açılırken) bitmesini bekler."""
+    k = _kernel32()
+    handle = k.OpenProcess(0x00100000, False, pid)   # SYNCHRONIZE
+    if handle:
+        try:
+            k.WaitForSingleObject(handle, int(seconds * 1000))
+        finally:
+            k.CloseHandle(handle)
+
+
+def relaunch():
+    """Uygulamayı yeni bir süreçte yeniden açar; yeni süreç bu sürecin bitmesini bekler (--bekle)."""
+    log("Koç PDF Pro kendi penceresinde yeniden açılıyor.")
+    subprocess.Popen([sys.executable, str(Path(__file__).resolve()), f"--bekle={os.getpid()}"], close_fds=True,
+                     creationflags=0x00000008 | 0x00000200)   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
 
 
 def end_stale_engine():
@@ -323,6 +355,7 @@ class Starter:
         self.launched = False       # motorun yüklenmesi başladı mı
         self.failed = None          # motor yüklenemediyse hatanın ayrıntısı
         self.host_open = None       # pencere açılınca: sonraki başlatmaların gönderdiği belgeleri açar
+        self.relaunch = False       # Edge penceresi kapanınca uygulama kendi penceresinde yeniden açılsın (WebView2 kuruldu)
         self.mutex = threading.Lock()
 
     def acquire(self, give_up, timeout=60):
@@ -866,7 +899,7 @@ def native_window(open_paths, starter):
         raise RuntimeError("Uygulama penceresi uygulamayı yükleyemeden kapandı")
 
 
-def edge_window(started_here):
+def edge_window(started_here, starter):
     """Yedek: Microsoft Edge'in uygulama penceresi (adres çubuğu ve sekme olmadan)."""
     edge = find_edge()
     if edge:
@@ -875,6 +908,12 @@ def edge_window(started_here):
             "--no-first-run", "--no-default-browser-check", "--disable-features=Translate",
             "--window-size=1320,860", "--start-maximized",
         ])
+        if starter.server is not None:
+            # WebView2 kurulunca sayfanın "Yeniden aç" düğmesi: Edge penceresi kapanır, uygulama kendi penceresinde açılır
+            def restart():
+                starter.relaunch = True
+                return close_windows(window.pid)
+            starter.server.RESTART = restart
         window.wait()          # pencere kapanana kadar bekle
     else:
         webbrowser.open(entry_url())   # Edge yoksa varsayılan tarayıcıda aç
@@ -886,6 +925,9 @@ def edge_window(started_here):
 def main():
     # Kısayola sürüklenen ya da "Birlikte aç" ile gelen PDF/UDF dosyaları
     open_paths = [a for a in sys.argv[1:] if a.lower().endswith((".pdf", ".udf")) and os.path.isfile(a)]
+    previous = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--bekle=")), "")
+    if previous.isdigit():   # WebView2 kurulduktan sonra yeniden açılış: önceki kopya bitsin
+        wait_for_exit(int(previous), 20)
     try:   # paketin sürümü (make_windows.sh app/_surum.py'ye yazar: SURUM = "1.0.0")
         build = (HERE / "app" / "_surum.py").read_text(encoding="utf-8").split('"')[1]
     except (OSError, IndexError):
@@ -912,12 +954,15 @@ def main():
         native_window(open_paths, starter)
     except Exception:
         log("Uygulama penceresi açılamadı; Edge penceresi kullanılıyor:\n" + traceback.format_exc())
+        os.environ["PDFSTUDYO_EDGE"] = "1"   # motor sayfada "WebView2 eksik" rozetini ve Kur düğmesini gösterir
         starter.start()            # pencere görünmeden düştüyse motor henüz yüklenmemiştir
         if not starter.wait_ready():
             message(start_error(starter))
             quit_process(1, starter)
-        edge_window(starter.started_here)
+        edge_window(starter.started_here, starter)
     starter.release()              # pencere açılış ekranındayken kapatıldıysa sıra hâlâ bu açılıştadır
+    if starter.relaunch:
+        relaunch()
     log("Çıkılıyor.")
     quit_process(0, starter)
 

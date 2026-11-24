@@ -6,6 +6,7 @@
 // (PDFSTUDYO_tabs). Tarayıcıda / Windows'ta yalnızca bu pencerenin sekmesi gösterilir.
 const strip = { tabs: null, local: { title: 'Koç PDF Pro', path: null }, unsaved: false,
   update: null,     // yeni sürüm bilgisi (varsa "Güncelleme hazır" rozeti)
+  webview2: false,  // Windows: WebView2 olmadığı için Edge penceresinde açıldı ("WebView2 eksik" rozeti)
   recover: 0 };     // kurtarılabilir belge sayısı
 window.PDFSTUDYO_tabs = list => { strip.tabs = list; renderTabStrip(); };
 
@@ -30,6 +31,7 @@ function renderTabStrip() {
     + (strip.tabs ? `<button class="tab-new" id="tab-new" data-tip="Yeni sekme (⌘T)" aria-label="Yeni sekme">${icon('plus')}</button>` : '')
     + `<span class="strip-spacer"></span>
        ${strip.recover ? `<button class="strip-badge warn" id="strip-recover" data-tip="Kaydedilmemiş değişiklikleri olan belgeler: açın ya da silin">${icon('history')}<span>Kurtarılabilir belge (${strip.recover})</span></button>` : ''}
+       ${strip.webview2 ? `<button class="strip-badge warn" id="strip-webview2" data-tip="Koç PDF Pro'nun kendi penceresi için gereken Microsoft bileşeni: kurmak için tıklayın">${icon('download')}<span>WebView2 eksik: Kur</span></button>` : ''}
        ${strip.update ? `<button class="strip-badge" id="strip-update" data-tip="Yeni sürüm ${esc(strip.update.surum)}: indirip kurmak için tıklayın">${icon('download')}<span>Güncelleme hazır</span></button>` : ''}
        <button class="strip-btn" id="strip-theme" data-tip="Görünüm: ${theme.label} — değiştirmek için tıklayın" aria-label="Görünüm: ${theme.label}">${icon(theme.icon)}</button>
        <button class="strip-btn" id="strip-settings" data-tip="Ayarlar (${esc(keyLabel('⌘,'))})" aria-label="Ayarlar">${icon('gear')}</button>
@@ -48,9 +50,10 @@ function renderTabStrip() {
   $('#strip-settings', el).onclick = () => settingsDialog();
   $('#strip-about', el).onclick = aboutDialog;
   $('#strip-guide', el).onclick = () => openGuide();
-  const rec = $('#strip-recover', el), upd = $('#strip-update', el);
+  const rec = $('#strip-recover', el), upd = $('#strip-update', el), wv = $('#strip-webview2', el);
   if (rec) rec.onclick = () => recoverDialog();
   if (upd) upd.onclick = () => updateDialog(strip.update);
+  if (wv) wv.onclick = () => webview2Dialog();
 }
 
 // Tarayıcıda: kaydedilmemiş değişiklik işareti sekmede de görünsün

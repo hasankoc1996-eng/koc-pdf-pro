@@ -1284,6 +1284,63 @@ check("Güncelleme: indirilmeden kurulum başlatılmaz", r2.status_code == 400 a
 _up.BASE_URL, A.UPDATER = _old_base, _old_up
 shutil.rmtree(UPD); shutil.rmtree(T / "indirilen"); shutil.rmtree(T / "indirilen2", ignore_errors=True)
 
+# ---- WebView2 (Windows): indir → Microsoft imzası → kur; ağ ve kurulum burada taklit edilir
+import webview2 as _wv
+WV = T / "webview2_deneme"
+WV.mkdir(exist_ok=True)
+(WV / "kaynak.exe").write_bytes(b"MZ" + b"\0" * 300_000)
+_seen = {}
+
+def _wv_installer(verify=True, run_code=0, installs=True, reachable=True):
+    w = _wv.Installer(WV / "indirilen")
+    def _open(url, timeout):
+        _seen["url"] = url
+        if not reachable:
+            raise OSError("ağ yok")
+        return open(WV / "kaynak.exe", "rb")   # urlopen gibi: read() ve (boş) headers
+    class _F:
+        def __init__(self, f): self.f, self.headers = f, {}
+        def __enter__(self): return self
+        def __exit__(self, *a): self.f.close()
+        def read(self, n): return self.f.read(n)
+    w.open = lambda url, t: _F(_open(url, t))
+    w.verify = lambda path: (_seen.__setitem__("verified", Path(path).stat().st_size), verify)[1]
+    w.run = lambda path: run_code
+    w.installed = lambda: installs
+    return w
+
+def _wv_wait(w):
+    for _ in range(100):
+        if w.state["status"] not in ("downloading", "verifying", "installing"):
+            break
+        _tm.sleep(0.05)
+    return w.state
+
+check("WebView2: her mimari için Microsoft'un çevrimdışı kurulum adresi",
+      set(_wv.LINKS) == {"x64", "x86", "arm64"} and _wv.download_url("x64") == "https://go.microsoft.com/fwlink/?linkid=2124701")
+w = _wv_installer(); w.start(); st = _wv_wait(w)
+check("WebView2: indirilen dosya imzası doğrulanıp kurulur, kurulum dosyası silinir",
+      st == {"status": "done"} and _seen.get("verified") == 300_002 and _seen["url"].startswith("https://go.microsoft.com/")
+      and not any((WV / "indirilen").iterdir()), st)
+check("WebView2: kurulduktan sonra yeniden başlatılmaz", w.start() == {"status": "done"})
+st = _wv_wait((w := _wv_installer(verify=False), w.start())[0])
+check("WebView2: Microsoft imzası tutmayan dosya kurulmaz, silinir, elle indirme yolu gösterilir",
+      st["status"] == "error" and "imzası" in st["error"] and _wv.ASK in st["error"]
+      and st["manual"].startswith("https://go.microsoft.com/") and st["page"] == _wv.PAGE
+      and not any((WV / "indirilen").iterdir()), st)
+st = _wv_wait((w := _wv_installer(run_code=1603, installs=False), w.start())[0])
+check("WebView2: kurulum başarısızsa çıkış koduyla bildirilir", st["status"] == "error" and "1603" in st["error"], st)
+st = _wv_wait((w := _wv_installer(reachable=False), w.start())[0])
+check("WebView2: Microsoft'a ulaşılamazsa bildirilir, yarım dosya kalmaz",
+      st["status"] == "error" and "indirilemedi" in st["error"] and not any((WV / "indirilen").iterdir()), st)
+check("WebView2: hatadan sonra yeniden denenebilir", w.start()["status"] == "downloading")
+_wv_wait(w)
+r = c.get("/api/webview2", headers=H).get_json()
+check("WebView2: durum sorulabilir, Mac'te kurulum istenmez",
+      r == {"status": "idle", "restart": False} and c.post("/api/webview2/install", headers=H).status_code == 400
+      and c.get("/api/status", headers=H).get_json().get("webview2_missing") is False, r)
+shutil.rmtree(WV)
+
 # ---- Format Değiştir: dosyalar bir kez alınır, kimlikleriyle dönüştürülür, seçilen klasöre birlikte kaydedilir
 (T / "notlar.xyz").write_text("x")
 r = c.post("/api/stage", data={"files": [(open(T / n, "rb"), n) for n in ("deneme.pdf", "deneme.docx", "resim.png", "notlar.xyz")]},

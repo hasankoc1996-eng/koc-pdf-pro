@@ -184,6 +184,81 @@ function updateDialog(u) {
   };
 }
 
+// ------------------------------------------------------------------ WebView2 (Windows)
+// WebView2 olmayan bilgisayarda uygulama Edge penceresinde açılır; sekme çubuğundaki "WebView2 eksik" rozeti bu pencereyi
+// açar. Kur: Microsoft'un çevrimdışı kurulum dosyası indirilir, imzası doğrulanır, kurulur (bkz. webview2.py).
+function webview2Dialog() {
+  const mb = n => (n / 1048576).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' MB';
+  const m = modal({
+    title: 'WebView2 eksik', width: 540,
+    body: `<p style="margin-top:0">Koç PDF Pro'nun kendi penceresi Windows'un <b>Microsoft Edge WebView2</b> bileşeniyle
+        çalışır. Bu bilgisayarda bileşen olmadığı için uygulama Edge penceresinde açıldı; sekmeler ve Windows'un Kaydet /
+        Aç pencereleri gibi bazı özellikler burada çalışmaz.</p>
+      <p class="muted small">Kur'a basınca Microsoft'un resmî kurulum dosyası (yaklaşık 200 MB) indirilir, Microsoft
+        imzası doğrulanır ve kurulur. Birkaç dakika sürebilir; bu arada çalışmaya devam edebilirsiniz.</p>
+      <div class="up-progress" id="wv-progress" hidden><div class="up-bar"><span id="wv-bar"></span></div>
+        <span class="muted small" id="wv-text"></span></div>
+      <div class="wv-error" id="wv-error" hidden></div>`,
+    foot: `<button class="btn" data-x>Sonra</button><button class="btn primary" id="wv-go">${icon('download')}Kur</button>`,
+  });
+  const go = $('#wv-go', m.el), bar = $('#wv-bar', m.el), text = $('#wv-text', m.el), err = $('#wv-error', m.el);
+  const steps = { verifying: 'Microsoft imzası doğrulanıyor…', installing: 'Kuruluyor… (birkaç dakika sürebilir)' };
+  $('[data-x]', m.el).onclick = m.close;
+
+  const failed = s => {
+    $('#wv-progress', m.el).hidden = true;
+    err.hidden = false;
+    err.innerHTML = `<p>${esc(s.error || 'WebView2 kurulamadı.')}</p>`
+      + (s.manual ? `<p class="small"><a href="${esc(s.manual)}" target="_blank" rel="noopener">Kurulum dosyasını indir (Microsoft)</a>`
+        + (s.page ? ` · <a href="${esc(s.page)}" target="_blank" rel="noopener">Microsoft'un WebView2 sayfası</a>` : '') + '</p>' : '');
+    go.disabled = false;
+    go.innerHTML = `${icon('download')}Yeniden dene`;
+  };
+  const done = s => {
+    strip.webview2 = false;
+    renderTabStrip();
+    bar.style.width = '100%';
+    if (!s.restart) {
+      text.textContent = 'WebView2 kuruldu. Koç PDF Pro\'yu kapatıp yeniden açın; artık kendi penceresinde açılacak.';
+      go.remove();
+      return;
+    }
+    text.textContent = 'WebView2 kuruldu. Koç PDF Pro kendi penceresinde yeniden açılabilir.';
+    go.disabled = false;
+    go.innerHTML = 'Yeniden aç';
+    go.onclick = async () => {
+      if (window.PDFSTUDYO_unsaved?.()) return toast('Önce açık belgedeki değişiklikleri kaydedin; bu pencere kapanacak.', 'error');
+      go.disabled = true;
+      let r;
+      try { r = await postJSON('/api/webview2/restart'); } catch { go.disabled = false; return; }
+      text.textContent = r.ok ? 'Bu pencere kapanıyor; Koç PDF Pro kendi penceresinde açılacak.'
+        : 'Koç PDF Pro\'yu kapatıp yeniden açın; artık kendi penceresinde açılacak.';
+    };
+  };
+
+  go.onclick = async () => {
+    go.disabled = true;
+    err.hidden = true;
+    $('#wv-progress', m.el).hidden = false;
+    bar.style.width = '0';
+    text.textContent = 'İndirme başlıyor…';
+    let s;
+    try { s = await postJSON('/api/webview2/install'); } catch { go.disabled = false; return; }
+    while (['downloading', 'verifying', 'installing'].includes(s.status)) {
+      if (s.status === 'downloading') {
+        bar.style.width = (s.total ? Math.min(100, 100 * s.received / s.total) : 5) + '%';
+        text.textContent = `İndiriliyor… ${mb(s.received)}${s.total ? ' / ' + mb(s.total) : ''}`;
+      } else {
+        bar.style.width = '100%';
+        text.textContent = steps[s.status];
+      }
+      await new Promise(r => setTimeout(r, 500));
+      try { s = await api('/api/webview2'); } catch { s = { status: 'error', error: 'Uygulamayla bağlantı kesildi.' }; }
+    }
+    if (s.status === 'done') done(s); else failed(s);
+  };
+}
+
 // ------------------------------------------------------------------ ayarlar
 // ⚙ düğmesi (sekme çubuğu) ve ⌘, (Mac: Koç PDF Pro › Ayarlar…). Seçimler hemen uygulanır. Uygulama genelindekiler
 // sunucuda (ayarlar.json); gece / gündüz, sayfa görünümü, imza ve kaşe bu bilgisayarın sayfa belleğinde; arayüz

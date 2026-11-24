@@ -64,7 +64,7 @@ mkdir -p "$STAGE/python/Lib"
 ditto "$WORK/site-packages" "$STAGE/python/Lib/site-packages"
 unzip -q -j "$WORK/dl/msvc_runtime.whl" '*.data/data/msvcp140.dll' '*.data/data/msvcp140_1.dll' \
   '*.data/data/msvcp140_2.dll' -d "$STAGE/python"
-cp "$PROJECT"/{app.py,converters.py,tools.py,editor.py,fonts.py,udf.py,ocr.py,person_names.py,updater.py,notlar.py,karsilastir.py,tablolar.py,kilavuz.py,formlar.py,kisisel_veri.py,pdf_ortak.py,paragraflar.py,yedekler.py,ayarlar.py} "$STAGE/app/"
+cp "$PROJECT"/{app.py,converters.py,tools.py,editor.py,fonts.py,udf.py,ocr.py,person_names.py,updater.py,notlar.py,karsilastir.py,tablolar.py,kilavuz.py,formlar.py,kisisel_veri.py,pdf_ortak.py,paragraflar.py,yedekler.py,ayarlar.py,webview2.py} "$STAGE/app/"
 printf 'SURUM = "%s"\nKAYNAK = "%s"\n' "$VERSION" "$REV" > "$STAGE/app/_surum.py"
 ditto "$PROJECT/static" "$STAGE/app/static"
 cp "$HERE/windows/"{launcher.pyw,kapat.ps1,kurulum.ps1,Kurulum.bat,Baslat.bat,"BENI OKU.txt"} "$STAGE/"

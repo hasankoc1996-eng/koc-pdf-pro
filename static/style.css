@@ -355,6 +355,8 @@ input[type=range] { accent-color: var(--accent); }
 .up-progress { margin-top: 14px; display: grid; gap: 6px; }
 .up-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
 .up-bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.wv-error { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: var(--danger-soft, rgba(192, 57, 43, .1)); }
+.wv-error p { margin: 0 0 6px; } .wv-error p:last-child { margin: 0; }
 .vr-list { display: grid; gap: 6px; max-height: min(50vh, 420px); overflow: auto; }
 .vr-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
 .vr-time { display: flex; align-items: center; gap: 8px; flex: 1; }

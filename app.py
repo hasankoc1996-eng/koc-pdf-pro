@@ -38,6 +38,7 @@ import tablolar
 import tools
 import udf
 import updater
+import webview2
 import yedekler
 from converters import ConversionError
 from tools import ToolError
@@ -317,7 +318,8 @@ def engine_status(max_age=60):
 def status():
     if request.args.get("yoklama") == "1":   # başlatıcının "motor açıldı mı" yoklaması: araçları beklemesin
         return jsonify(version=SURUM, packaged=PACKAGED, heartbeat=HEARTBEAT)
-    return jsonify(engines=engine_status(), version=SURUM, packaged=PACKAGED, heartbeat=HEARTBEAT)
+    return jsonify(engines=engine_status(), version=SURUM, packaged=PACKAGED, heartbeat=HEARTBEAT,
+                   webview2_missing=EDGE_MODE and not webview2.installed())
 
 
 # ------------------------------------------------------------------ güncelleme
@@ -349,6 +351,29 @@ def update_install():
     except (ValueError, OSError) as e:
         raise ToolError(f"Kurulum açılamadı: {e}")
     return jsonify(ok=True)
+
+
+# ------------------------------------------------------------------ WebView2 (Windows, Edge penceresinde açıldıysa)
+EDGE_MODE = IS_WIN and os.environ.get("PDFSTUDYO_EDGE") == "1"   # başlatıcı WebView2 olmadan Edge'e döndü
+RESTART = None   # Edge penceresinde: başlatıcının "Edge'i kapat, kendi penceresinde yeniden aç" işlevi
+WEBVIEW2 = webview2.Installer(DATA / "webview2")
+
+
+@app.get("/api/webview2")
+def webview2_state():
+    return jsonify({**WEBVIEW2.state, "restart": RESTART is not None})
+
+
+@app.post("/api/webview2/install")
+def webview2_install():
+    if not IS_WIN:
+        raise ToolError("WebView2 yalnızca Windows'ta kurulur.")
+    return jsonify({**WEBVIEW2.start(), "restart": RESTART is not None})
+
+
+@app.post("/api/webview2/restart")
+def webview2_restart():
+    return jsonify(ok=bool(RESTART is not None and RESTART()))
 
 
 # ------------------------------------------------------------------ sorun bildir

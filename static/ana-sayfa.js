@@ -270,6 +270,7 @@ async function init() {
     state.engines = s.engines;  // Word bulunamazsa Word → PDF ekranında uyarı gösterilir
     state.version = s.version;
     state.packaged = s.packaged;   // kurulum paketi mi: güncelleme yalnızca onda denetlenir
+    if (s.webview2_missing) { strip.webview2 = true; renderTabStrip(); }   // Windows: Edge penceresinde açıldı
     if (s.heartbeat) {
       // Windows: pencere kapanınca motor da kapansın diye sayfa ara ara "buradayım" der
       const beat = () => fetch('/api/ping', { method: 'POST' }).catch(() => { });
