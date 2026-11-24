@@ -333,7 +333,7 @@ function shortcutGroups() {
       [kbd('Esc'), 'Aracı bırak, "Seç"e dön'],
       [kbd('⌫'), 'Seçili eklemeyi sil (Sayfa düzeninde seçili sayfaları)'],
       [`${kbd('⇧')} + sürükle`, 'Kalem, Çizgi: yatay, dikey ya da 45° düz çizgi'],
-      [`${kbd('⌥')} + sürükle`, 'Vurgula: metne yapışmadan serbest alan'],
+      [`${kbd('⌥')} + sürükle`, 'Vurgula, Karart: metne yapışmadan serbest alan'],
       [kbd('↵', '⇧↵'), 'Metni Düzenle: onayla / alt satır'],
       [kbd('⌘↵'), 'Not penceresinde kaydet'],
     ]],

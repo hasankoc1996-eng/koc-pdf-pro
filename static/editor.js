@@ -30,7 +30,7 @@
     { id: 'text', icon: 'text', label: 'Metin Ekle', hint: 'Sayfada metin eklemek istediğiniz yere tıklayın.' },
     { id: 'textedit', icon: 'textedit', label: 'Metni Düzenle', hint: 'Değiştirmek istediğiniz paragrafa tıklayın; metin paragrafın içinde yeniden dizilir. Enter: onayla, Shift+Enter: alt satır, Esc: vazgeç.' },
     { id: 'whiteout', icon: 'eraser', label: 'Beyaz Kutu', hint: 'Silmek istediğiniz alanı sürükleyin; altındaki yazı silinir, üstüne yeni metin ekleyebilirsiniz.' },
-    { id: 'redact', icon: 'redact', label: 'Karart', hint: 'Sürükleyerek alanı karartın. Altındaki metin kalıcı olarak silinir.' },
+    { id: 'redact', icon: 'redact', label: 'Karart', hint: 'Metnin üzerinde sürükleyin: kelimeler satır satır kararır. Metin olmayan yerde (ya da ⌥ basılıyken) serbest alan çizilir. Kutular kaydedene kadar düzeltilebilir; altındaki metin kalıcı olarak silinir.' },
     { id: 'highlight', icon: 'highlight', label: 'Vurgula', hint: 'Metnin üzerinde sürükleyin: işaret kelimelere yapışır. Metin olmayan yerde (ya da ⌥ basılıyken) serbest alan vurgulanır.' },
     { id: 'box', icon: 'box', label: 'Çerçeve', hint: 'Sürükleyerek dikdörtgen çerçeve çizin.' },
     { id: 'pen', icon: 'pen', label: 'Kalem', hint: 'Serbest çizim yapın. Shift basılıyken düz çizgi çizer; Fosforlu ile satırları boyayabilirsiniz.' },
@@ -40,6 +40,7 @@
     { id: 'stamp', icon: 'stamp', label: 'Kaşe', action: true },
   ];
   const RECT_TOOLS = new Set(['whiteout', 'redact', 'highlight', 'box']);
+  const SNAP_TOOLS = new Set(['highlight', 'redact']);   // metnin üzerinde kelimelere yapışan araçlar
   const HL_COLORS = ['#ffe14d', '#8ef0a0', '#8fd3ff', '#ffa3d1'];
   const MARKER_OPACITY = 0.4;   // fosforlu kalem: yarı saydam, altındaki yazı okunur
 
@@ -131,7 +132,7 @@
   function pageNear(i) {
     if (!ED.editing) return;
     if (ED.tool === 'textedit') loadLines(i, i === host.cur());
-    if (ED.tool === 'highlight') loadWords(i);
+    if (SNAP_TOOLS.has(ED.tool)) loadWords(i);
   }
 
   // Belgenin yeni hâli okuma ekranına işlendi (araç, geri al, not…): satır ve kelime önbellekleri yenilenir
@@ -245,6 +246,7 @@
     box.classList.toggle('crosshair', RECT_TOOLS.has(t) || t === 'pen' || t === 'line');
     box.classList.toggle('text-cursor', t === 'text');
     box.classList.toggle('select-mode', !t || t === 'select');
+    $$('.overlay.on-text', box).forEach(o => o.classList.toggle('on-text', false));
   }
 
   // ================================================================ sayfa küçük resimleri ve sayfa düzeni
@@ -633,17 +635,17 @@
       }
       deselect();
 
-      // Vurgula: metnin üzerinde başlarsa işaret kelimelere yapışır; ⌥ basılıysa ya da metin yoksa serbest alan
-      if (ED.tool === 'highlight' && !e.altKey) {
+      // Vurgula ve Karart: metnin üzerinde başlarsa kelimelere yapışır; ⌥ basılıysa ya da metin yoksa serbest alan
+      if (SNAP_TOOLS.has(ED.tool) && !e.altKey) {
         const hit = wordAt(pg, p, false);
         if (hit) {
           e.preventDefault();
-          drag = { mode: 'mark', page: pg, ov, start: hit, end: hit };
+          drag = { mode: 'mark', tool: ED.tool, page: pg, ov, start: hit, end: hit };
           ov.setPointerCapture(e.pointerId);
           drawMarkPreview(drag);
           return;
         }
-        if (ED.opts.mark !== 'highlight') {
+        if (ED.tool === 'highlight' && ED.opts.mark !== 'highlight') {
           toast('Altını ya da üstünü çizmek için metnin üzerinde sürükleyin.');
           return;
         }
@@ -678,7 +680,12 @@
     });
 
     box.addEventListener('pointermove', e => {
-      if (!drag) return;
+      if (!drag) {   // Vurgula ve Karart: metnin üzerinde imleç yazı imleci olur (sürükleyince kelimeler seçilir)
+        const ov = SNAP_TOOLS.has(ED.tool) && e.target.closest?.('.overlay');
+        if (ov) ov.classList.toggle('on-text', !e.altKey && !e.target.closest('.item')
+          && !!wordAt(+ov.parentElement.dataset.i, rel(ov, e), false));
+        return;
+      }
       const p = rel(drag.ov, e);
       if (drag.mode === 'mark') {
         const hit = wordAt(drag.page, p, true);
@@ -717,7 +724,9 @@
       drag = null;
       if (d.mode === 'mark') {
         $$('.mark-preview', d.ov).forEach(x => x.remove());
-        applyMark(d.page, markRects(d));
+        // Karart: satır başına bir kutu; kaydedene kadar taşınıp boyutlandırılabilir
+        if (d.tool === 'redact') fitRects(d.page, markRects(d)).forEach(([x, y, w, h]) => addItem({ type: 'redact', page: d.page, x, y, w, h }, false));
+        else applyMark(d.page, markRects(d));
       } else if (d.mode === 'draw') {
         d.el.remove();
         const p = rel(d.ov, e);
@@ -852,12 +861,30 @@
     return rects;
   }
 
+  // Karartma kutuları komşu satırlara değmeyecek kadar daraltılır (karartma kutuya azıcık değen harfi de siler)
+  function fitRects(page, rects) {
+    const lines = ED.words.get(page) || [];
+    return rects.map(([x, y, w, h]) => {
+      let top = y, bottom = y + h;
+      for (const l of lines) {
+        const ws = l.words, lx0 = ws[0][0], lx1 = ws[ws.length - 1][0] + ws[ws.length - 1][1];
+        if (lx1 <= x || lx0 >= x + w) continue;
+        const c = l.y + l.h / 2, gap = l.h * 0.02;
+        if (c < y) top = Math.max(top, l.y + l.h + gap);
+        else if (c > y + h) bottom = Math.min(bottom, l.y - gap);
+      }
+      if (bottom - top < h * 0.25) [top, bottom] = [y + h * 0.375, y + h * 0.625];   // satırlar üst üste binmişse ortası
+      return [x, top, w, bottom - top];
+    });
+  }
+
   function drawMarkPreview(d) {
     $$('.mark-preview', d.ov).forEach(x => x.remove());
     const o = ED.opts, color = o.mark === 'highlight' ? o.hl : o.markLine;
-    for (const [x, y, w, h] of markRects(d)) {
+    const redact = d.tool === 'redact';
+    for (const [x, y, w, h] of redact ? fitRects(d.page, markRects(d)) : markRects(d)) {
       const el = document.createElement('div');
-      el.className = `mark-preview ${o.mark}`;
+      el.className = `mark-preview ${redact ? 'redact' : o.mark}`;
       el.style.setProperty('--c', color);
       place(el, { x, y, w, h });
       d.ov.append(el);
