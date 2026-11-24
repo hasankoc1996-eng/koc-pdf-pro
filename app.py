@@ -1782,6 +1782,26 @@ def host_open():
     return jsonify(ok=bool(HOST_OPEN(paths)))
 
 
+# Edge penceresinde (WebView2 yok) sayfaya Python'dan ulaşılamaz: başlatıcı gelen belgeleri bu sıraya bırakır
+# (HOST_OPEN = queue_open), sekme kabuğu sırayı ara ara alır ve belgeleri yeni sekmede açar.
+_OPEN_QUEUE = []
+_open_queue_lock = threading.Lock()
+
+
+def queue_open(paths):
+    with _open_queue_lock:
+        _OPEN_QUEUE.extend(paths)
+    return True
+
+
+@app.get("/api/host/pending")
+def host_pending():
+    with _open_queue_lock:
+        paths = _OPEN_QUEUE[:]
+        _OPEN_QUEUE.clear()
+    return jsonify(paths=paths)
+
+
 @app.post("/api/shutdown")
 def shutdown():
     threading.Timer(0.3, hard_exit).start()

@@ -242,7 +242,7 @@ function bindExternalLinks(root) {
   $$('a[data-ext]', root).forEach(a => a.onclick = e => {
     if (HOST === 'mac') return;
     e.preventDefault();
-    if (SHELL) native({ action: 'openUrl', url: a.href });
+    if (SHELL) native({ action: 'openUrl', url: a.href });   // Edge penceresinde kabuk yeni pencerede açar
     else window.open(a.href, '_blank', 'noopener');
   });
 }
@@ -299,7 +299,7 @@ const kbd = (...keys) => keys.map(k => `<kbd>${esc(keyLabel(k))}</kbd>`).join('<
 
 // Gruplar: [başlık, [[tuşlar (HTML), açıklama], …]]. Yalnızca bu pencerede (Mac uygulaması, Windows, tarayıcı) çalışanlar
 function shortcutGroups() {
-  const tabs = NATIVE || SHELL, mac = HOST === 'mac';
+  const tabs = NATIVE, mac = HOST === 'mac';   // Edge penceresinde Ctrl+T / Ctrl+W tarayıcınındır
   return [
     ['Genel', [
       [kbd('⌘/'), 'Klavye kısayolları (bu pencere)'],

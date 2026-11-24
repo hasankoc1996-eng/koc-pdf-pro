@@ -176,6 +176,19 @@ def close_windows(pid):
     return True
 
 
+def bring_to_front(pid):
+    """Sürecin penceresini öne getirir (simge durumundaysa açar). İkinci başlatma AllowSetForegroundWindow ile izin
+    verdiği için (hand_over) Windows öne getirmeye izin verir."""
+    user32 = ctypes.WinDLL("user32")
+    user32.IsIconic.argtypes = (ctypes.c_void_p,)
+    user32.ShowWindow.argtypes = (ctypes.c_void_p, ctypes.c_int)
+    user32.SetForegroundWindow.argtypes = (ctypes.c_void_p,)
+    for hwnd in windows_of(pid, first=True):
+        if user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, 9)   # SW_RESTORE
+        user32.SetForegroundWindow(hwnd)
+
+
 def wait_for_exit(pid, seconds):
     """Önceki kopyanın (yeniden açılırken) bitmesini bekler."""
     k = _kernel32()
@@ -899,12 +912,28 @@ def native_window(open_paths, starter):
         raise RuntimeError("Uygulama penceresi uygulamayı yükleyemeden kapandı")
 
 
-def edge_window(started_here, starter):
-    """Yedek: Microsoft Edge'in uygulama penceresi (adres çubuğu ve sekme olmadan)."""
+def edge_window(open_paths, started_here, starter):
+    """Yedek: Microsoft Edge'in uygulama penceresi (adres çubuğu olmadan). İçinde uygulamanın sekme kabuğu açılır:
+    sonraki başlatmaların belgeleri (çift tıklanan PDF) yeni pencere yerine bu pencerede yeni sekmede açılır."""
+    url = entry_url("shell", [("edge", "1")] + [("open", p) for p in open_paths])
     edge = find_edge()
+    window = None
+
+    def host_open(paths):
+        """İkinci başlatma: belgeler sunucudaki sıraya, kabuk oradan alıp sekmede açar; pencere öne gelir."""
+        starter.server.queue_open(paths)
+        if window is not None:
+            try:
+                bring_to_front(window.pid)
+            except Exception:
+                log("Edge penceresi öne getirilemedi:\n" + traceback.format_exc())
+        return True
+
+    if starter.server is not None:
+        starter.connect(host_open)   # pencere sahibinin (yüklenemeyen pencerenin) bağlantısı varsa yerine geçer
     if edge:
         window = subprocess.Popen([
-            edge, f"--app={entry_url()}", f"--user-data-dir={DATA / 'pencere'}",
+            edge, f"--app={url}", f"--user-data-dir={DATA / 'pencere'}",
             "--no-first-run", "--no-default-browser-check", "--disable-features=Translate",
             "--window-size=1320,860", "--start-maximized",
         ])
@@ -916,7 +945,7 @@ def edge_window(started_here, starter):
             starter.server.RESTART = restart
         window.wait()          # pencere kapanana kadar bekle
     else:
-        webbrowser.open(entry_url())   # Edge yoksa varsayılan tarayıcıda aç
+        webbrowser.open(url)   # Edge yoksa varsayılan tarayıcıda aç
         if started_here:
             while alive():     # "Uygulamayı kapat" ya da pencere kapanınca motor durana kadar
                 time.sleep(2)
@@ -959,7 +988,7 @@ def main():
         if not starter.wait_ready():
             message(start_error(starter))
             quit_process(1, starter)
-        edge_window(starter.started_here, starter)
+        edge_window(open_paths, starter.started_here, starter)
     starter.release()              # pencere açılış ekranındayken kapatıldıysa sıra hâlâ bu açılıştadır
     if starter.relaunch:
         relaunch()

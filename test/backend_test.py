@@ -44,6 +44,14 @@ check("İkinci açılış: açık pencereye iletilir", r.get_json() == {"ok": Tr
 r = c.post("/api/host/open", json={"paths": []}, headers=H | {"Origin": "https://kotu-site.com"})
 check("İkinci açılış: başka siteden reddedilir", r.status_code == 403)
 A.HOST_OPEN = None
+# Edge penceresi: başlatıcı belgeleri sıraya bırakır, sekme kabuğu bir kez alır
+A.HOST_OPEN = A.queue_open
+c.post("/api/host/open", json={"paths": ["C:\\Belgeler\\a.pdf"]}, headers=H)
+c.post("/api/host/open", json={"paths": ["C:\\Belgeler\\b.pdf"]}, headers=H)
+_p1 = c.get("/api/host/pending", headers=H).get_json(); _p2 = c.get("/api/host/pending", headers=H).get_json()
+check("İkinci açılış (Edge): belgeler sırayla kabuğa bir kez verilir",
+      _p1 == {"paths": ["C:\\Belgeler\\a.pdf", "C:\\Belgeler\\b.pdf"]} and _p2 == {"paths": []}, (_p1, _p2))
+A.HOST_OPEN = None
 
 # Word / Excel'e dosya verilebiliyor mu? macOS, testi çalıştıran uygulamaya (Terminal…) Dosyalar ve Klasörler izni
 # verilmemişse Office klasörüne yazmayı reddeder: o zaman Office gerektiren denemeler atlanır ve bu yazılır.

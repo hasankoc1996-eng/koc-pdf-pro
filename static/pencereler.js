@@ -227,7 +227,9 @@ function webview2Dialog() {
     go.disabled = false;
     go.innerHTML = 'Yeniden aç';
     go.onclick = async () => {
-      if (window.PDFSTUDYO_unsaved?.()) return toast('Önce açık belgedeki değişiklikleri kaydedin; bu pencere kapanacak.', 'error');
+      if (SHELL?.unsavedCount?.() || window.PDFSTUDYO_unsaved?.()) {
+        return toast('Önce açık belgelerdeki değişiklikleri kaydedin; bu pencere kapanacak.', 'error');
+      }
       go.disabled = true;
       let r;
       try { r = await postJSON('/api/webview2/restart'); } catch { go.disabled = false; return; }

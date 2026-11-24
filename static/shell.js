@@ -1,7 +1,9 @@
 /* Koç PDF Pro — Windows uygulama penceresinin sekme kabuğu.
    Her sekme, bir bölmede (iframe) açılan uygulamanın kendisidir; sekme çubuğunu o sayfa çizer (PDFSTUDYO_tabs).
    Sekmeleri bu kabuk yönetir; Kaydet / Aç pencereleri gibi Windows'a özgü işleri pencerenin sahibine
-   (başlatıcıdaki Python, window.pywebview.api) iletir. Mac uygulamasındaki Swift kabuğun karşılığıdır. */
+   (başlatıcıdaki Python, window.pywebview.api) iletir. Mac uygulamasındaki Swift kabuğun karşılığıdır.
+   WebView2 olmayan bilgisayarda aynı kabuk Edge penceresinde açılır (?edge=1): pencere sahibi yoktur; sayfalar
+   tarayıcı yollarını kullanır (kaydetme, açma), sonraki başlatmaların belgeleri sunucudaki sıradan alınır. */
 'use strict';
 (function () {
   const frames = document.getElementById('frames');
@@ -10,9 +12,12 @@
   let seq = 0;
   let lastUnsaved = -1;
 
+  const EDGE = new URLSearchParams(location.search).has('edge');
+
   // Pencere sahibi hazır mı? (pywebview, sayfa yüklenince "pywebviewready" olayını gönderir)
   const hostReady = new Promise(resolve => {
     if (window.pywebview?.api) return resolve(true);
+    if (EDGE) return resolve(false);   // Edge penceresinde pencere sahibi yok: beklenmez
     window.addEventListener('pywebviewready', () => resolve(true), { once: true });
     setTimeout(() => resolve(!!window.pywebview?.api), 6000);
   });
@@ -78,7 +83,12 @@
     if (i < 0) return;
     tabs.splice(i, 1);
     tab.frame.remove();
-    if (!tabs.length) { host({ action: 'quit' }); return; }
+    if (!tabs.length) {
+      if (!EDGE) { host({ action: 'quit' }); return; }
+      window.close();                                   // Edge: son sekme kapanınca pencere de kapansın
+      setTimeout(() => { if (!tabs.length) newTab(); }, 500);   // kapanamadıysa boş kalmasın
+      return;
+    }
     if (selected === tab) select(tabs[Math.min(i, tabs.length - 1)]); else changed();
   }
 
@@ -144,6 +154,9 @@
         host({ action: 'theme', value: msg.value });   // açılış ekranı bir sonraki açılışta bu görünümle gelsin
         return;
       case 'accept': case 'defaultStatus': case 'setDefaultPDF': return;   // Windows'ta karşılığı yok
+      case 'openUrl':
+        if (EDGE) { window.open(msg.url, '_blank', 'noopener'); return; }
+        return host(msg);
       default:
         host(msg);   // reveal, print, quit…
     }
@@ -164,4 +177,16 @@
     const open = new URLSearchParams(location.search).getAll('open');
     newTab(open);
   });
+
+  if (EDGE) {
+    // Uygulama yeniden başlatıldı ya da kısayola PDF sürüklendi: başlatıcı belgeleri sunucuya bırakır, burada açılır
+    const poll = () => fetch('/api/host/pending').then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.paths?.length) window.PDFSTUDYO_SHELL.openExternal(d.paths); }, () => { })
+      .finally(() => setTimeout(poll, 1000));
+    started.then(poll);
+    // Pencere kapatılırken kaydedilmemiş sekme varsa Edge sorsun (pywebview penceresinde bunu pencere sahibi yapar)
+    window.addEventListener('beforeunload', e => {
+      if (tabs.some(t => t.unsaved)) { e.preventDefault(); e.returnValue = ''; }
+    });
+  }
 })();
