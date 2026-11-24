@@ -14,7 +14,8 @@ BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))  # paketlenmiş uyg
 IS_WIN = sys.platform == "win32"
 WORD_APP = Path("/Applications/Microsoft Word.app")
 WD_FORMAT = {"pdf": 17, "docx": 16}   # Windows Word: wdFormatPDF, wdFormatDocumentDefault
-# Word sandbox içinde çalışır; bu klasöre izin penceresi çıkmadan erişebilir.
+# Word sandbox içinde çalışır; bu klasördeki dosyayı izin penceresi çıkmadan açabilir. Koç PDF Pro'nun buraya
+# yazabilmesi ise macOS'ta Dosyalar ve Klasörler izni ister (bkz. _to_sandbox).
 WORD_SANDBOX = Path.home() / "Library/Containers/com.microsoft.Word/Data/tmp/pdfstudyo"
 WORD_SCRIPT = BASE / "scripts" / "word_export.applescript"
 WORD_INPUTS = {".doc", ".docx", ".rtf", ".odt", ".txt", ".dotx", ".docm"}
@@ -103,15 +104,35 @@ def _word_export_windows(src: Path, dst: Path, kind: str):
         raise ConversionError("Word çıktı dosyası üretmedi.")
 
 
+def _to_sandbox(src: Path, folder: Path, name: str, app: str):
+    """Dosyayı Word'ün / Excel'in kendi klasörüne kopyalar. macOS başka bir uygulamanın klasörüne yazmayı izne bağlar;
+    macOS 27 bunu sormadan reddeder (yalnızca "Veri Erişimi Engellendi" bildirimi çıkar), kullanıcı izni Ayarlar'dan açar."""
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        shutil.copy(src, folder / name)
+    except PermissionError:
+        raise ConversionError(
+            f"macOS, Koç PDF Pro'nun dosyayı {app} uygulamasına vermesini engelledi. Sistem Ayarları › Gizlilik ve "
+            f"Güvenlik › Dosyalar ve Klasörler bölümünde Koç PDF Pro'nun altındaki “{app}” anahtarını açın, "
+            f"sonra yeniden deneyin.")
+
+
+def _clean_sandbox(folder: Path, job: str):
+    try:
+        for f in folder.glob(f"*{job}*"):
+            f.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def _word_export(src: Path, dst: Path, kind: str, timeout=240):
     if IS_WIN:
         return _word_export_windows(src, dst, kind)
     with _word_lock:
-        WORD_SANDBOX.mkdir(parents=True, exist_ok=True)
         job = "ps" + uuid.uuid4().hex[:10]
         tin = WORD_SANDBOX / f"{job}{src.suffix.lower()}"
         tout = WORD_SANDBOX / f"{job}_out.{kind}"
-        shutil.copy(src, tin)
+        _to_sandbox(src, WORD_SANDBOX, tin.name, "Microsoft Word")
         try:
             try:
                 proc = subprocess.run(
@@ -124,14 +145,13 @@ def _word_export(src: Path, dst: Path, kind: str, timeout=240):
                 msg = proc.stderr.strip()
                 if "-1743" in msg or "not allowed" in msg.lower() or "izin" in msg.lower():
                     msg = ("Word'ü kontrol etme izni yok. Sistem Ayarları › Gizlilik ve Güvenlik › Otomasyon "
-                           "bölümünden Terminal/Python için Microsoft Word iznini açın.")
+                           "bölümünden Koç PDF Pro için Microsoft Word iznini açın.")
                 raise ConversionError(f"Word dönüştürme hatası: {msg}")
             if not tout.exists() or tout.stat().st_size == 0:
                 raise ConversionError("Word çıktı dosyası üretmedi.")
             shutil.move(str(tout), str(dst))
         finally:
-            for f in WORD_SANDBOX.glob(f"*{job}*"):
-                f.unlink(missing_ok=True)
+            _clean_sandbox(WORD_SANDBOX, job)
 
 
 def _libreoffice_to_pdf(src: Path, dst: Path):
@@ -187,11 +207,10 @@ def _excel_export_windows(src: Path, dst: Path):
 
 def _excel_export_mac(src: Path, dst: Path, timeout=240):
     with _excel_lock:
-        EXCEL_SANDBOX.mkdir(parents=True, exist_ok=True)
         job = "ps" + uuid.uuid4().hex[:10]
         tin = EXCEL_SANDBOX / f"{job}{src.suffix.lower()}"
         tout = EXCEL_SANDBOX / f"{job}_out.pdf"
-        shutil.copy(src, tin)
+        _to_sandbox(src, EXCEL_SANDBOX, tin.name, "Microsoft Excel")
         try:
             try:
                 proc = subprocess.run(["osascript", str(EXCEL_SCRIPT), str(tin), str(tout), tin.name],
@@ -208,8 +227,7 @@ def _excel_export_mac(src: Path, dst: Path, timeout=240):
                 raise ConversionError("Excel çıktı dosyası üretmedi.")
             shutil.move(str(tout), str(dst))
         finally:
-            for f in EXCEL_SANDBOX.glob(f"*{job}*"):
-                f.unlink(missing_ok=True)
+            _clean_sandbox(EXCEL_SANDBOX, job)
 
 
 def excel_to_pdf(src: Path, dst: Path):

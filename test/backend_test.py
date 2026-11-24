@@ -45,15 +45,45 @@ r = c.post("/api/host/open", json={"paths": []}, headers=H | {"Origin": "https:/
 check("İkinci açılış: başka siteden reddedilir", r.status_code == 403)
 A.HOST_OPEN = None
 
-r, j = post("/api/convert/word-to-pdf", [T/"deneme.docx"])
-check("word→pdf", r.status_code == 200 and "error" not in j["files"][0], j)
-pdf_bytes = fetch(j["files"][0]); d = pymupdf.open(stream=pdf_bytes)
-check("word→pdf içerik", "İğne ipliği" in d[0].get_text(), j["files"][0]["name"])
+# Word / Excel'e dosya verilebiliyor mu? macOS, testi çalıştıran uygulamaya (Terminal…) Dosyalar ve Klasörler izni
+# verilmemişse Office klasörüne yazmayı reddeder: o zaman Office gerektiren denemeler atlanır ve bu yazılır.
+import converters as _cv
+def _office_blocked(installed, folder, app_name):
+    if not installed or _cv.IS_WIN:
+        return False
+    try:
+        _cv._to_sandbox(T/"deneme.pdf", folder, "izin-denemesi.pdf", app_name)
+        (folder/"izin-denemesi.pdf").unlink(missing_ok=True)
+        return False
+    except _cv.ConversionError:
+        print("⏭", f"{app_name} denemeleri atlandı: macOS bu uygulamanın {app_name} klasörüne yazmasına izin vermiyor")
+        return True
+WORD_BLOCKED = _office_blocked(_cv.word_installed(), _cv.WORD_SANDBOX, "Microsoft Word")
+EXCEL_BLOCKED = _office_blocked(_cv.excel_installed(), _cv.EXCEL_SANDBOX, "Microsoft Excel")
+
+if not WORD_BLOCKED:
+    r, j = post("/api/convert/word-to-pdf", [T/"deneme.docx"])
+    check("word→pdf", r.status_code == 200 and "error" not in j["files"][0], j)
+    d = pymupdf.open(stream=fetch(j["files"][0]))
+    check("word→pdf içerik", "İğne ipliği" in d[0].get_text(), j["files"][0]["name"])
 
 r, j = post("/api/convert/pdf-to-word", [T/"deneme.pdf"])
 check("pdf→word standart", r.status_code == 200 and j["files"][0]["name"].endswith(".docx"), j)
-r, j = post("/api/convert/pdf-to-word", [T/"deneme.pdf"], engine="word")
-check("pdf→word word", r.status_code == 200 and "error" not in j["files"][0], j)
+if not WORD_BLOCKED:
+    r, j = post("/api/convert/pdf-to-word", [T/"deneme.pdf"], engine="word")
+    check("pdf→word word", r.status_code == 200 and "error" not in j["files"][0], j)
+
+# macOS 27, Word'ün / Excel'in klasörüne yazmayı izin sormadan reddeder: sunucu hatası değil, ne yapılacağını söyleyen mesaj
+def _denied(*a, **k): raise PermissionError(1, "Operation not permitted")
+_real_copy, A.converters.shutil.copy = A.converters.shutil.copy, _denied
+try:
+    A.converters._to_sandbox(T/"deneme.pdf", T/".veri"/"office", "x.pdf", "Microsoft Excel"); _msg = ""
+except A.converters.ConversionError as e:
+    _msg = str(e)
+finally:
+    A.converters.shutil.copy = _real_copy
+check("Office izni yok: Dosyalar ve Klasörler ayarını söyleyen mesaj", "Dosyalar ve Klasörler" in _msg
+      and "“Microsoft Excel”" in _msg, _msg)
 
 # test image
 pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 400, 300), 0); pix.set_rect(pix.irect, (30, 120, 200)); pix.save(T/"resim.png")
@@ -363,8 +393,7 @@ check("Form: alan boşaltılabilir (Formu temizle)", cleared["ad"] == "" and cle
 (T / "form.pdf").unlink()
 
 # --- Excel → PDF (Microsoft Excel ya da LibreOffice gerekir)
-import converters as _cv
-if _cv.excel_installed() or _cv.soffice_path():
+if (_cv.excel_installed() or _cv.soffice_path()) and not EXCEL_BLOCKED:
     from openpyxl import Workbook as _Wb
     xb = _Wb(); xs1 = xb.active; xs1.title = "Hesap"
     xs1.append(["Kalem", "Tutar"]); xs1.append(["Şikâyet konusu cihaz", 12500])
@@ -1004,13 +1033,13 @@ from PIL import Image as _Img
 _Img.new("RGB", (1600, 900), (40, 120, 200)).save(T / "yatay.png")
 _Img.new("L", (1654, 2339), 255).save(T / "tarama.tif", save_all=True, append_images=[_Img.new("L", (1654, 2339), 200)],
                                        dpi=(200, 200))
-r, j = post("/api/tool/merge", [T / "deneme.pdf", T / "yatay.png", T / "tarama.tif", T / "deneme.udf", T / "deneme.docx"],
-            name="dava dosyasi")
+_mfiles = [T / "deneme.pdf", T / "yatay.png", T / "tarama.tif", T / "deneme.udf"] + ([] if WORD_BLOCKED else [T / "deneme.docx"])
+r, j = post("/api/tool/merge", _mfiles, name="dava dosyasi")
 mm = pymupdf.open(stream=fetch(j["files"][0])) if "files" in j else None
 toc = mm.get_toc() if mm else []
 pdf_n, udf_n = pymupdf.open(T / "deneme.pdf").page_count, None
 check("Birleştir: PDF, resim, çok sayfalı TIFF, UDF ve Word sırayla birleşir; her dosya içindekilerde başlık",
-      mm and [t[1] for t in toc if t[0] == 1] == ["deneme", "yatay", "tarama", "deneme", "deneme"]
+      mm and [t[1] for t in toc if t[0] == 1] == ["deneme", "yatay", "tarama", "deneme", "deneme"][:len(_mfiles)]
       and mm[pdf_n].rect.width > mm[pdf_n].rect.height            # yatay resim yatay A4'te
       and abs(mm[pdf_n].rect.width - 842) < 1
       and abs(mm[pdf_n + 1].rect.height - 842) < 1 and abs(mm[pdf_n + 2].rect.height - 842) < 1   # TIFF'in iki sayfası A4
