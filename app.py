@@ -521,8 +521,8 @@ def pdf_to_word():
 
     def one(p):
         out = new_output(stem(p) + ".docx")
-        converters.pdf_to_word(p, out, engine=engine, password=password)
-        return describe(out)
+        note = converters.pdf_to_word(p, out, engine=engine, password=password)   # Word açamazsa Standart'a dönülür
+        return describe(out, **({"note": note} if note else {}))
     return run_each(save_uploads(), one)
 
 

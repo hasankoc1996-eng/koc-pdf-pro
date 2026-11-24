@@ -9,6 +9,13 @@ const UDF_NOTE = 'Üretilen UDF dosyasını UYAP\'a göndermeden önce UYAP Dok�
   + 'Resimler UDF\'ye aktarılmaz.';
 const isEkFormat = v => v.format === 'ek' || v.format === 'ek-sayfa' || v.format === 'custom';
 
+// PDF → Word motorları: seçilenin açıklaması seçeneğin altında görünür (araç sayfası ve Format Değiştir)
+const PDF_WORD_NOTES = {
+  standart: 'Belge PDF\'teki gibi görünür; tablolar ve resimler yerinde kalır. Word gerekmez, hızlıdır.',
+  word: 'Metin, düzeltmeye uygun paragraflar hâlinde gelir; tablolu sayfalarda düzen biraz kayabilir. '
+    + 'Word açılacağı için biraz daha yavaştır.',
+};
+
 const TOOLS = [
   {
     id: 'udf-to-pdf', group: 'Dönüştür', color: 'var(--c-uyap)', icon: 'udf', title: 'UDF → PDF',
@@ -56,8 +63,9 @@ const TOOLS = [
     short: 'PDF\'i düzenlenebilir Word yap', desc: 'PDF dosyalarını düzenlenebilir Word (.docx) belgesine çevirin.',
     accept: '.pdf', multiple: true, endpoint: '/api/convert/pdf-to-word', button: 'Word\'e Dönüştür', busy: 'Word belgesi oluşturuluyor…',
     options: [
-      { name: 'engine', type: 'seg', label: 'Dönüştürme motoru', value: 'standart', choices: [['standart', 'Standart'], ['word', 'Microsoft Word']],
-        hint: 'Standart: sayfa düzenini, tabloları ve resimleri korur. Microsoft Word: Word\'ün kendi PDF okuyucusunu kullanır.' },
+      // Word kuruluysa Word seçili gelir; kurulu değilse seçenek görünmez, Standart kullanılır
+      { name: 'engine', type: 'seg', label: 'Dönüştürme motoru', value: 'word', choices: [['standart', 'Standart'], ['word', 'Microsoft Word']],
+        showIf: () => !!state.engines.word, hint: v => PDF_WORD_NOTES[v.engine] || '' },
       { name: 'password', type: 'password', label: 'PDF şifresi (varsa)', placeholder: 'Şifresizse boş bırakın', showIf: v => !v.__doc },
     ],
     note: 'Taranmış (resim) PDF\'lerde metin seçilebilir olmadığı için Word\'de de resim olarak görünür.',
@@ -381,7 +389,8 @@ function renderTool(main, tool, { useDoc = true } = {}) {
           ${o.placeholder ? `placeholder="${esc(o.placeholder)}"` : ''} ${o.min != null ? `min="${o.min}"` : ''} ${o.max != null ? `max="${o.max}"` : ''}>`;
         $('input', f).oninput = e => { values[o.name] = e.target.value; updatePreview(); };
       }
-      if (o.hint) f.insertAdjacentHTML('beforeend', `<span class="hint">${esc(o.hint)}</span>`);
+      const hint = typeof o.hint === 'function' ? o.hint(values) : o.hint;   // seçilen değere göre değişebilir
+      if (hint) f.insertAdjacentHTML('beforeend', `<span class="hint">${esc(hint)}</span>`);
       box.append(f);
     }
     if (tool.preview) {

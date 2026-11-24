@@ -13,13 +13,15 @@ const FX_ACCEPT = `.pdf,.udf,${WORD_ACCEPT},${EXCEL_ACCEPT},.jpg,.jpeg,.png,.hei
 const FX_KIND = { pdf: 'PDF', word: 'Word', excel: 'Excel', udf: 'UDF', image: 'Resim' };
 const FX_DPI = { name: 'dpi', value: '150', choices: [['96', '96 dpi'], ['150', '150 dpi'], ['300', '300 dpi']] };
 const FX_IMAGES = 'Her sayfa ayrı bir resim; çok sayfalı belgede resimler bir klasörde toplanır.';
-// Her kaynak türünün gidebileceği biçimler. form: sabit alanlar; opts: satırdaki küçük seçenekler (value yoksa ilki varsayılan);
+// Her kaynak türünün gidebileceği biçimler. form: sabit alanlar; opts: satırdaki küçük seçenekler (value yoksa ilki varsayılan;
+// notes: seçilen değerin açıklaması, satırın altındaki notun yerine);
 // app: gereken program (Word / Excel; yoksa LibreOffice); pages: çok sayfalı belgede sonuç bir klasör olur
 const FX_TARGETS = {
   pdf: [
     { id: 'word', label: 'Word', ext: 'docx', endpoint: '/api/convert/pdf-to-word',
       note: 'Düzenlenebilir Word belgesi; sayfa düzeni, tablolar ve resimler korunur.',
-      opts: () => (state.engines.word ? [{ name: 'engine', choices: [['standart', 'Standart'], ['word', 'Microsoft Word ile']] }] : []) },
+      opts: () => (state.engines.word ? [{ name: 'engine', value: 'word', choices: [['standart', 'Standart'], ['word', 'Microsoft Word ile']],
+        notes: PDF_WORD_NOTES }] : []) },
     { id: 'excel', label: 'Excel', ext: 'xlsx', endpoint: '/api/convert/pdf-to-excel',
       note: 'Tablolar Excel\'e aktarılır; tutarlar sayı, tarihler tarih olur.',
       opts: () => [{ name: 'content', choices: [['tables', 'Yalnızca tablolar'], ['all', 'Bütün sayfa']] }] },
@@ -419,7 +421,8 @@ function convertDialog(opts = {}) {
         `<button type="button" data-v="${esc(v)}" class="${optValue(r, o) === v ? 'on' : ''}">${esc(label)}</button>`).join('')}</div>`).join('');
       const missing = t.app && !state.engines[t.app];
       const note = missing ? (state.engines.libreoffice ? `${FX_APP[t.app]} bulunamadı; LibreOffice kullanılacak.`
-        : `Bu dönüştürme için ${FX_APP[t.app]} ya da LibreOffice kurulu olmalı.`) : t.note;
+        : `Bu dönüştürme için ${FX_APP[t.app]} ya da LibreOffice kurulu olmalı.`)
+        : (t.opts?.() || []).map(o => o.notes?.[optValue(r, o)]).find(Boolean) || t.note;
       return `<div class="fx-target"><span class="fx-arrow">→</span><div class="seg sm fx-seg">${FX_TARGETS[r.kind].map(x =>
         `<button type="button" data-t="${x.id}" class="${x.id === t.id ? 'on' : ''}">${esc(x.label)}</button>`).join('')}</div>${opts}</div>
         <div class="fx-note ${missing && !state.engines.libreoffice ? 'warn' : ''}">${esc(note)}</div>`;

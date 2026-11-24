@@ -252,16 +252,33 @@ def word_to_pdf(src: Path, dst: Path):
 
 
 def pdf_to_word(src: Path, dst: Path, engine="standart", password=None):
-    if engine == "word":
-        if not word_installed():
-            raise ConversionError("Microsoft Word bulunamadı.")
-        return _word_export(src, dst, "docx")
-    from pdf2docx import Converter
+    """engine: "standart" (pdf2docx: PDF'teki görünüm) ya da "word" (Microsoft Word'ün PDF okuyucusu: düzenlenebilir
+    paragraflar). Word açamazsa yerleşik motora dönülür. Dönen değer: kullanıcıya gösterilecek not (yoksa None)."""
     doc = pymupdf.open(src)
-    if doc.needs_pass:
-        if not password or not doc.authenticate(password):
-            raise ConversionError("PDF şifreli. Doğru şifreyi girin.")
+    encrypted, pages = doc.needs_pass, doc.page_count
+    if encrypted and (not password or not doc.authenticate(password)):
+        doc.close()
+        raise ConversionError("PDF şifreli. Doğru şifreyi girin.")
     doc.close()
+    note = None
+    if engine == "word":
+        if encrypted:   # Word şifreyi sorar ve bekler: şifreli PDF yerleşik motorla açılır
+            note = "Şifreli PDF olduğu için Standart motorla dönüştürüldü"
+        elif not word_installed():
+            note = "Microsoft Word bulunamadı; Standart motorla dönüştürüldü"
+        else:
+            try:
+                # Word sayfa başına birkaç saniye harcar; takılırsa beklemeden yerleşik motora geçilir
+                _word_export(src, dst, "docx", timeout=min(240, 60 + 2 * pages))
+                return None
+            except ConversionError as e:
+                note = f"Microsoft Word ile dönüştürülemedi, Standart motor kullanıldı. {e}"
+    _pdf2docx(src, dst, password)
+    return note
+
+
+def _pdf2docx(src: Path, dst: Path, password=None):
+    from pdf2docx import Converter
     cv = Converter(str(src), password=password)
     try:
         cv.convert(str(dst), multi_processing=False)

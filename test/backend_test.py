@@ -127,6 +127,21 @@ r, j = post("/api/tool/unlock", [T/"sifreli.pdf"], password="yanlis")
 check("şifre kaldır yanlış", "error" in j["files"][0], j)
 r, j = post("/api/tool/unlock", [T/"sifreli.pdf"], password="1234")
 check("şifre kaldır", not pymupdf.open(stream=fetch(j["files"][0])).needs_pass)
+# PDF → Word "Microsoft Word ile": Word açamazsa (izin, takılma) yerleşik motora dönülür ve nedeni söylenir;
+# şifreli PDF'i Word açamaz (şifreyi sorup bekler), yerleşik motor şifreyle açar
+def _word_fails(*a, **k): raise A.converters.ConversionError("macOS, Koç PDF Pro'nun dosyayı Microsoft Word uygulamasına vermesini engelledi.")
+_real = A.converters._word_export, A.converters.word_installed
+A.converters._word_export, A.converters.word_installed = _word_fails, lambda: True
+try:
+    r, j = post("/api/convert/pdf-to-word", [T/"deneme.pdf"], engine="word")
+    r2, j2 = post("/api/convert/pdf-to-word", [T/"sifreli.pdf"], engine="word", password="1234")
+finally:
+    A.converters._word_export, A.converters.word_installed = _real
+check("pdf→word: Word açamazsa Standart motorla dönüştürülür, nedeni söylenir",
+      "error" not in j["files"][0] and j["files"][0]["name"].endswith(".docx")
+      and "Standart motor" in j["files"][0].get("note", "") and "Microsoft Word uygulamasına" in j["files"][0]["note"], j)
+check("pdf→word: şifreli PDF Word yerine Standart motorla, şifresiyle dönüştürülür",
+      "error" not in j2["files"][0] and "Şifreli PDF" in j2["files"][0].get("note", ""), j2)
 r, j = post("/api/tool/watermark", [merged], text="GİZLİ ŞİRKET", opacity=0.2)
 wm = fetch(j["files"][0]); (T/"filigran.pdf").write_bytes(wm)
 check("filigran", "GİZLİ ŞİRKET" in pymupdf.open(stream=wm)[0].get_text(), j)
