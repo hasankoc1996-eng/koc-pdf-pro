@@ -228,8 +228,8 @@ function contextMenu(x, y, items) {
 }
 
 // Hakkında: sürüm, künye, iletişim, sorun bildirme
-// Geliştiricinin sayfası: ana sayfanın künyesinde ve Hakkında penceresinde
-const DEVELOPER = { label: '@murttkcc', url: 'https://x.com/murttkcc' };
+// Geliştiricinin LinkedIn sayfası: ana sayfanın künyesinde ve Hakkında penceresinde
+const DEVELOPER = { label: 'Hasan Koç', url: 'https://www.linkedin.com/in/hasan-ko%C3%A7-47423020b/' };
 // Kaynak kodu ve lisans (AGPL-3.0): Hakkında penceresinde
 const SOURCE = { label: 'github.com/hasankoc1996-eng/koc-pdf-pro', url: 'https://github.com/hasankoc1996-eng/koc-pdf-pro' };
 
