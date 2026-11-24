@@ -39,13 +39,18 @@ table { border-collapse: collapse; width: 100%; margin: 4pt 0 8pt; }
 td, th { border: 0.5pt solid #bbbbbb; padding: 3pt 5pt; font-size: 9pt; text-align: left; }
 """
 IMAGE_WIDTH = 1200   # PDF'e giren ekran görüntüsünün genişliği (piksel): yazı alanında ~190 dpi
-BREAK = '<div style="page-break-before: always"></div>'
 
 # Arayüzdeki Windows çevirisinin (app.js › WIN_TEXT) kılavuzda geçenleri
 WIN_TEXT = [("⇧⌘", "Ctrl+Shift+"), ("⌘ veya ⇧", "Ctrl veya Shift"), ("⌘", "Ctrl+"), ("⌃", "Ctrl+"), ("⇧", "Shift+"),
             ("↵", "Enter"), ("⌫", "Delete"), ("⌥", "Alt"), ("Finder'da", "Dosya Gezgini'nde")]
 
 _HEADING = re.compile(r'<section class="g-(part|sub)" id="([^"]+)">\s*<h([23])>(.*?)</h\3>', re.S)
+# Resimli figure'ın açılış etiketi; resim bir alt başlığın hemen altındaysa bölümün açılış etiketi (sayfa sonu
+# başlığın önüne konur, başlık resminden ayrılmaz). Sayfa sonu etiketin kendi stilinde: araya konan boş div'i MuPDF
+# bölüm ve başlık önünde yok sayıp bölümü sayfanın altından dışarı diziyordu.
+_FIGURE = re.compile(r'(<section class="g-sub" id="[^"]+")(?=>\s*<h3>(?:(?!</h3>).)*</h3>\s*<figure[^>]* data-k="(\d+)">)'
+                     r'|(<figure[^>]* data-k="(\d+)")(?=>)', re.S)
+_PAGE_BREAK = ' style="page-break-before: always"'
 _TAG = re.compile(r"<[^>]+>")
 
 
@@ -86,12 +91,12 @@ def _image(path):
 def _prepare(source, images, archive):
     """Kılavuz HTML'i dizgiye hazır hâle: resimler arşive, iç bağlantılar #id (olmayan başlığa giden bağlantı düz
     yazı olur), resim genişlikleri yazı alanına göre (dar resimler daha küçük). Resimli her figure'a sıra numarası
-    (data-k) verilir; dönen liste resimlerin istenen genişlikleri."""
+    (data-k) ve kimlik (kfig<sıra>) verilir; dönen liste resimlerin istenen (genişlik, yükseklik) ölçüleri."""
     out = re.sub(r"<!--.*?-->", "", source, flags=re.S)
     ids = set(re.findall(r'\sid="([^"]+)"', out))
     out = re.sub(r'<a href="#" data-to="([^"]+)">(.*?)</a>',
                  lambda m: _link(m.group(1), m.group(2)) if m.group(1) in ids else m.group(2), out, flags=re.S)
-    widths = []
+    sizes = []
 
     def img(m):
         name = m.group(2)
@@ -107,11 +112,12 @@ def _prepare(source, images, archive):
             shown = BODY.height * 0.62 * w / h
         jpg = Path(name).stem + ".jpg"
         archive.add(data, jpg)
-        widths.append(shown)
-        return (f'{m.group(1)[:-1]} data-k="{len(widths) - 1}">'
+        sizes.append((shown, h * shown / w))
+        k = len(sizes) - 1
+        return (f'{m.group(1)[:-1]} id="kfig{k}" data-k="{k}">'
                 f'<img src="{jpg}" width="{shown:.0f}" height="{h * shown / w:.0f}">')
     out = re.sub(r'(<figure[^>]*>)<img src="/static/kilavuz/([^"]+)"[^>]*>', img, out)
-    return out, widths
+    return out, sizes
 
 
 def _cover(version, toc, pages=None):
@@ -125,25 +131,61 @@ def _cover(version, toc, pages=None):
 
 
 def _render(html, archive):
-    """HTML → PDF; başlıkların sayfaları da döner ({id: sayfa})."""
-    pages = {}
+    """HTML → PDF; başlıkların sayfaları ({id: sayfa}) ve resimli figure'ların yerleri ({sıra: (sayfa, kutu)}) da
+    döner."""
+    pages, figures = {}, {}
 
     def where(pos):
-        if pos.id and pos.open_close & 1:
+        if not (pos.id and pos.open_close & 1):
+            return
+        fig = re.fullmatch(r"kfig(\d+)", pos.id)
+        if fig:
+            figures.setdefault(int(fig.group(1)), (pos.page_num - 1, pymupdf.Rect(pos.rect)))
+        else:
             pages.setdefault(pos.id, pos.page_num)
 
     story = pymupdf.Story(html=html, user_css=CSS, archive=archive)
     doc = story.write_with_links(lambda n, filled: (PAGE, BODY, None), where)
-    return doc, pages
+    return doc, pages, figures
 
 
-def _shrunk(doc, widths):
-    """Sayfa sonuna sığmadığı için MuPDF'in küçülttüğü resimlerin sıra numaraları."""
+def _misplaced(doc, figures, sizes):
+    """Sayfa sonuna sığmadığı için MuPDF'in küçülttüğü, sayfanın altından dışarı dizdiği ya da hiç dizmediği resimlerin
+    sıra numaraları. Resimler sırayla değil figure'ın yeriyle eşlenir: biri düşünce sıra kayar, sonrakiler yanlış
+    eşlenirdi (bir maddenin uzayıp sayfa sonunu kaydırması kılavuzun yarısını bozuyordu)."""
+    bad = set()
+    for k, (width, _) in enumerate(sizes):
+        page, box = figures.get(k, (None, None))
+        if page is None or not 0 <= page < doc.page_count or box.y1 > BODY.y1 + 1:
+            bad.add(k)
+            continue
+        shown = [pymupdf.Rect(i["bbox"]) for i in doc[page].get_image_info()]
+        shown = [r.width for r in shown if r.intersects(box) and box.contains(r.tl + (0.5, 0.5))]
+        if not shown or max(shown) < width * 0.85:
+            bad.add(k)
+    return bad
+
+
+def _shrunk(doc, sizes):
+    """Bitmiş PDF'te istenenden dar çıkan resimlerin sıra numaraları; resim sayısı tutmuyorsa (biri düşmüşse) hepsi."""
     shown = [pymupdf.Rect(i["bbox"]).width for page in doc
              for i in sorted(page.get_image_info(), key=lambda i: i["bbox"][1])]
-    if len(shown) != len(widths):
-        return set()
-    return {k for k, (got, want) in enumerate(zip(shown, widths)) if got < want * 0.85}
+    if len(shown) != len(sizes):
+        return set(range(len(sizes)))
+    return {k for k, (got, (want, _)) in enumerate(zip(shown, sizes)) if got < want * 0.85}
+
+
+def _with_breaks(body, breaks):
+    """breaks'teki resimler yeni sayfadan başlar (alt başlığın hemen altındaysa başlığıyla birlikte)."""
+    headed = set()
+
+    def tag(m):
+        if m.group(1):   # bölüm, ardından gelen resim için
+            headed.add(int(m.group(2)))
+            return m.group(1) + (_PAGE_BREAK if int(m.group(2)) in breaks else "")
+        k = int(m.group(4))   # resim; başlığıyla birlikte geçtiyse kendisine ikinci kez konmaz
+        return m.group(3) + (_PAGE_BREAK if k in breaks and k not in headed else "")
+    return _FIGURE.sub(tag, body)
 
 
 def build_pdf(source, images, dst, version=None, windows=False):
@@ -151,16 +193,15 @@ def build_pdf(source, images, dst, version=None, windows=False):
     if windows:
         source = windows_text(source)
     archive = pymupdf.Archive()
-    body, widths = _prepare(source, Path(images), archive)
+    body, sizes = _prepare(source, Path(images), archive)
     toc = headings(source)
     # Sayfa sonuna sığmayan resim küçülmesin, sonraki sayfaya geçsin; içindekilerdeki sayfa numaraları da son
     # dizgiden. Her geçişte yerleşim değişebildiği için birkaç kez dizilir.
     breaks, pages = set(), None
     for _ in range(8):
-        html = _cover(version, toc, pages) + re.sub(
-            r'<figure[^>]* data-k="(\d+)">', lambda m: (BREAK if int(m.group(1)) in breaks else "") + m.group(0), body)
-        doc, found = _render(html, archive)
-        more = _shrunk(doc, widths) - breaks
+        html = _cover(version, toc, pages) + _with_breaks(body, breaks)
+        doc, found, figures = _render(html, archive)
+        more = _misplaced(doc, figures, sizes) - breaks
         if not more and found == pages:
             break
         breaks |= more

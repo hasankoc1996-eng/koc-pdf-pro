@@ -1553,6 +1553,9 @@ _kwin = "".join(pg.get_text() for pg in pymupdf.open(_kw))
 check("Kılavuz: Windows'ta ⌘ ⇧ ⌃ yerine Ctrl / Shift, Finder yerine Dosya Gezgini",
       "⌘S" in _kmac and not any(k in _kwin for k in "⌘⇧⌃⌥") and "Ctrl+Shift+S" in _kwin and "Ctrl+Tab" in _kwin
       and "Dosya Gezgini'nde" in _kwin, [k for k in "⌘⇧⌃⌥" if k in _kwin])
+# Bir madde uzayıp sayfa sonu kayınca MuPDF bölümleri sayfanın altından dışarı diziyordu (başlık ve resim görünmüyordu)
+_kgone = [t for _, t, n in _kd.get_toc() if not any(r.y1 <= _kv.BODY.y1 + 1 for r in _kd[n - 1].search_for(t))]
+check("Kılavuz: her başlık içindekilerde yazan sayfada görünür", not _kgone, _kgone)
 
 print("\nSONUÇ:", "TÜMÜ GEÇTİ" if ok else "HATA VAR")
 sys.exit(0 if ok else 1)   # betik ya da otomasyon başarısızlığı çıkış kodundan anlasın
