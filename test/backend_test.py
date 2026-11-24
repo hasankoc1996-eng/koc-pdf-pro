@@ -1557,5 +1557,44 @@ check("Kılavuz: Windows'ta ⌘ ⇧ ⌃ yerine Ctrl / Shift, Finder yerine Dosya
 _kgone = [t for _, t, n in _kd.get_toc() if not any(r.y1 <= _kv.BODY.y1 + 1 for r in _kd[n - 1].search_for(t))]
 check("Kılavuz: her başlık içindekilerde yazan sayfada görünür", not _kgone, _kgone)
 
+# --- gerçek sunucu süreci: ikinci kopya aynı bağlantı noktasına sessizce bağlanmaz, açık hatayla durur; kapatınca
+# dinleyen soket hemen kapanır (Windows'ta kapanırken takılan kopya bağlantı noktasını tutup açılışları logoda bırakıyordu)
+import socket as _so, subprocess as _sps, tempfile as _tfs, http.client as _hcs, time as _tms
+with _so.socket() as _s:
+    _s.bind(("127.0.0.1", 0)); _sport = _s.getsockname()[1]
+_sdata = _tfs.mkdtemp()
+_senv = dict(os.environ, PDFSTUDYO_PORT=str(_sport), PDFSTUDYO_DATA=_sdata)
+_scmd = [sys.executable, "-W", "ignore", "-c", "import app; app.serve()"]
+
+
+def _sreq(method, path):
+    try:
+        cn = _hcs.HTTPConnection("127.0.0.1", _sport, timeout=3)
+        cn.request(method, path, headers={"Host": f"127.0.0.1:{_sport}"})
+        return cn.getresponse().status
+    except ConnectionRefusedError:
+        return "kapalı"
+    except OSError as e:
+        return type(e).__name__
+
+
+_sp1 = _sps.Popen(_scmd, cwd=A.BASE, env=_senv, stdout=_sps.DEVNULL, stderr=_sps.DEVNULL)
+for _ in range(150):
+    if _sreq("GET", "/api/status?yoklama=1") == 200:
+        break
+    _tms.sleep(0.2)
+_sup = _sreq("GET", "/api/status?yoklama=1")
+_sp2 = _sps.run(_scmd, cwd=A.BASE, env=_senv, capture_output=True, text=True, timeout=120)
+_sbusy = _sp2.returncode != 0 and "PortBusy" in _sp2.stderr and f"{_sport} numaralı bağlantı noktası kullanımda" in _sp2.stderr
+_sdown = _sreq("POST", "/api/shutdown")
+try:
+    _sp1.wait(10); _sexit = _sp1.returncode
+except _sps.TimeoutExpired:
+    _sp1.kill(); _sexit = "kapanmadı"
+check("Sunucu: ikinci kopya aynı bağlantı noktasında açık hatayla durur, kapatınca bağlantı noktası boşalır",
+      _sup == 200 and _sbusy and _sdown == 200 and _sexit == 0 and _sreq("GET", "/api/status?yoklama=1") == "kapalı",
+      (_sup, _sp2.returncode, _sp2.stderr.strip().splitlines()[-1:], _sdown, _sexit))
+shutil.rmtree(_sdata, ignore_errors=True)
+
 print("\nSONUÇ:", "TÜMÜ GEÇTİ" if ok else "HATA VAR")
 sys.exit(0 if ok else 1)   # betik ya da otomasyon başarısızlığı çıkış kodundan anlasın

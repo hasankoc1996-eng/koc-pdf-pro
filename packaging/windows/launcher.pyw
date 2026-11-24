@@ -16,6 +16,7 @@ import http.client
 import json
 import logging
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -80,6 +81,134 @@ def probe():
 
 def alive():
     return probe()[0]
+
+
+# --- kapanırken takılmış eski kopya
+# 2026-11-11'de bir kurum bilgisayarında kapatılan pencerenin süreci çıkışta takıldı (os._exit → ExitProcess, yüklü
+# kitaplıkların kapanışı), dinleyen soketi açık kaldı. Sonraki açılışlar yarım saat logoda bekledi: yeni motor
+# SO_REUSEADDR ile aynı bağlantı noktasına sessizce bağlanıyor, istekler ise ölü kopyaya gidiyordu. Artık çıkış
+# TerminateProcess ile (quit_process), motor bağlantı noktasını paylaşmıyor (app._Server) ve açılışta böyle bir kopya
+# bulunursa kapatılıyor (end_stale_engine).
+
+class _TcpRow(ctypes.Structure):   # MIB_TCPROW_OWNER_PID
+    _fields_ = [(name, ctypes.c_uint32) for name in ("state", "local_addr", "local_port", "remote_addr",
+                                                     "remote_port", "pid")]
+
+
+def port_owner(port):
+    """Bağlantı noktasını dinleyen sürecin kimliği (yoksa None). netstat kullanılmaz: çıktısı Windows diline göre
+    değişiyor."""
+    get_table = ctypes.WinDLL("iphlpapi").GetExtendedTcpTable
+    get_table.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32), ctypes.c_int, ctypes.c_uint32,
+                          ctypes.c_int, ctypes.c_uint32)
+    size = ctypes.c_uint32(0)
+    for _ in range(4):   # tablo, boyutu sorulduktan sonra büyümüş olabilir
+        buf = ctypes.create_string_buffer(max(size.value, 4))
+        result = get_table(buf, ctypes.byref(size), False, socket.AF_INET, 3, 0)   # 3: yalnızca dinleyenler, PID'li
+        if result == 0:
+            break
+        if result != 122:   # 122: tampon küçük
+            return None
+    else:
+        return None
+    count = ctypes.c_uint32.from_buffer(buf).value
+    rows = (_TcpRow * count).from_buffer(buf, 4)
+    return next((row.pid for row in rows if socket.ntohs(row.local_port & 0xFFFF) == port), None)
+
+
+def _kernel32():
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.OpenProcess.restype = ctypes.c_void_p
+    k.OpenProcess.argtypes = (ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32)
+    k.QueryFullProcessImageNameW.argtypes = (ctypes.c_void_p, ctypes.c_uint32, ctypes.c_wchar_p,
+                                             ctypes.POINTER(ctypes.c_uint32))
+    k.TerminateProcess.argtypes = (ctypes.c_void_p, ctypes.c_uint)
+    k.WaitForSingleObject.argtypes = (ctypes.c_void_p, ctypes.c_uint32)
+    k.WaitForSingleObject.restype = ctypes.c_uint32
+    k.CloseHandle.argtypes = (ctypes.c_void_p,)
+    return k
+
+
+def process_path(pid):
+    """Sürecin çalıştırdığı programın tam yolu (bilinemezse None)."""
+    k = _kernel32()
+    handle = k.OpenProcess(0x1000, False, pid)   # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return None
+    try:
+        buf, size = ctypes.create_unicode_buffer(32768), ctypes.c_uint32(32768)
+        return buf.value if k.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)) else None
+    finally:
+        k.CloseHandle(handle)
+
+
+def has_window(pid):
+    """Sürecin görünür bir penceresi var mı (açık, çalışan bir Koç PDF Pro penceresi kapatılmasın)."""
+    user32 = ctypes.WinDLL("user32")
+    proc = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
+    user32.EnumWindows.argtypes = (proc, ctypes.c_void_p)
+    user32.GetWindowThreadProcessId.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32))
+    user32.IsWindowVisible.argtypes = (ctypes.c_void_p,)
+    found = []
+
+    def each(hwnd, _):
+        owner = ctypes.c_uint32()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        if owner.value == pid and user32.IsWindowVisible(hwnd):
+            found.append(hwnd)
+            return False
+        return True
+    user32.EnumWindows(proc(each), None)
+    return bool(found)
+
+
+def end_stale_engine():
+    """Bağlantı noktasını yanıt vermeyen, penceresiz bir Koç PDF Pro kopyası tutuyorsa (kapanırken takılmış) onu
+    kapatır, kimliğini günlüğe yazar. Kopya birkaç saniye içinde kendiliğinden biterse ya da yanıt verirse dokunulmaz.
+    Bağlantı noktası başka bir programdaysa yalnızca günlüğe yazılır (motor bağlanamayınca bunu söyler)."""
+    try:
+        pid = port_owner(PORT)
+        if not pid or pid == os.getpid():
+            return
+        exe = process_path(pid)
+        ours = bool(exe) and os.path.normcase(os.path.dirname(exe)) == os.path.normcase(os.path.dirname(sys.executable))
+        if not ours:
+            log(f"{PORT} numaralı bağlantı noktası başka bir programda: {os.path.basename(exe) if exe else '?'} (PID {pid}).")
+            return
+        if has_window(pid):
+            log(f"Bağlantı noktası açık bir Koç PDF Pro penceresinde (PID {pid}); yanıt vermiyor ama kapatılmadı.")
+            return
+        for _ in range(6):   # kapanmakta olan kopya bu arada kendiliğinden bitebilir
+            time.sleep(1)
+            if port_owner(PORT) != pid:
+                return
+            if alive():
+                log(f"Bağlantı noktasını tutan Koç PDF Pro kopyası (PID {pid}) yanıt verdi.")
+                return
+        k = _kernel32()
+        handle = k.OpenProcess(0x0001 | 0x00100000, False, pid)   # PROCESS_TERMINATE | SYNCHRONIZE
+        if not handle:
+            log(f"Yanıt vermeyen eski Koç PDF Pro kopyası (PID {pid}) kapatılamadı: erişim yok ({ctypes.get_last_error()}).")
+            return
+        try:
+            k.TerminateProcess(handle, 1)
+            ended = k.WaitForSingleObject(handle, 5000) == 0
+        finally:
+            k.CloseHandle(handle)
+        log(f"Bağlantı noktasını tutan, yanıt vermeyen eski Koç PDF Pro kopyası kapatıldı (PID {pid})"
+            + ("." if ended else "; 5 saniyede bitmedi."))
+    except Exception:
+        log("Eski kopya denetimi yapılamadı:\n" + traceback.format_exc())
+
+
+def quit_process(code, starter=None):
+    """Süreci hemen bitirir: motor yüklüyse önce dinleyen soketi kapanır, sonra TerminateProcess (bkz. app.hard_exit).
+    os._exit (ExitProcess) yüklü kitaplıkların (WebView2, pythonnet) kapanışını beklerken takılabiliyor."""
+    server = starter.server if starter is not None else None
+    if server is not None:
+        server.hard_exit(code)
+    _kernel32().TerminateProcess(ctypes.c_void_p(-1), code)   # -1: bu süreç
+    os._exit(code)
 
 
 def app_key():
@@ -266,7 +395,12 @@ def start_server(starter):
             if starter.host_open is not None:
                 server.HOST_OPEN = starter.host_open
         log("Motor yüklendi.")
-        server.serve()
+        try:
+            server.serve()
+        except BaseException as e:   # bağlantı noktası kullanımda ya da motor beklenmedik biçimde durdu
+            starter.failed = (f"{e}\n\nBilgisayarı yeniden başlatıp tekrar deneyin." if isinstance(e, OSError)
+                              else traceback.format_exc())
+            log("Motor çalışmayı bıraktı:\n" + traceback.format_exc())
 
     threading.Thread(target=run, daemon=True).start()
 
@@ -652,7 +786,8 @@ class Host:
 def start_error(starter):
     """Motor çalışmadıysa kullanıcıya gösterilecek ileti."""
     if starter.failed:
-        last = starter.failed.strip().splitlines()[-1]
+        text = starter.failed.strip()
+        last = text if not text.startswith("Traceback") else text.splitlines()[-1]
         return f"Koç PDF Pro başlatılamadı:\n\n{last}\n\nAyrıntılar: {DATA / 'log.txt'}"
     return f"Koç PDF Pro motoru yanıt vermedi.\n\nAyrıntılar: {DATA / 'log.txt'}"
 
@@ -762,14 +897,15 @@ def main():
     starter = Starter()
     if not starter.acquire(give_up=lambda: alive() and hand_over(open_paths)):
         log("Açık pencereye devredildi.")
-        os._exit(0)
+        quit_process(0)
     if alive():
         if hand_over(open_paths):
             log("Açık pencereye devredildi.")
             starter.release()      # bırakılmazsa sonraki açılışlar sırayı 60 saniye bekliyordu
-            os._exit(0)
+            quit_process(0)
         starter.release()          # motor başka bir pencerenin; ona bağlan
     else:
+        end_stale_engine()         # bağlantı noktasını kapanırken takılmış eski bir kopya tutuyorsa
         starter.started_here = True   # motor, açılış ekranı göründükten sonra yüklenir (native_window › boot)
 
     try:
@@ -779,10 +915,11 @@ def main():
         starter.start()            # pencere görünmeden düştüyse motor henüz yüklenmemiştir
         if not starter.wait_ready():
             message(start_error(starter))
-            os._exit(1)
+            quit_process(1, starter)
         edge_window(starter.started_here)
     starter.release()              # pencere açılış ekranındayken kapatıldıysa sıra hâlâ bu açılıştadır
-    os._exit(0)
+    log("Çıkılıyor.")
+    quit_process(0, starter)
 
 
 if __name__ == "__main__":

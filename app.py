@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 import shutil
+import socket
 import sys
 import threading
 import time
@@ -17,7 +18,7 @@ import zipfile
 from pathlib import Path
 
 from flask import Flask, abort, g, jsonify, redirect, request, send_file, send_from_directory
-from werkzeug.serving import WSGIRequestHandler
+from werkzeug.serving import ThreadedWSGIServer, WSGIRequestHandler
 from werkzeug.utils import secure_filename
 
 import pymupdf
@@ -1758,7 +1759,7 @@ def host_open():
 
 @app.post("/api/shutdown")
 def shutdown():
-    threading.Timer(0.3, lambda: os._exit(0)).start()
+    threading.Timer(0.3, hard_exit).start()
     return jsonify(ok=True)
 
 
@@ -1795,7 +1796,7 @@ def watch_parent(pid):
         try:
             os.kill(pid, 0)
         except OSError:
-            os._exit(0)
+            hard_exit()
         time.sleep(2)
 
 
@@ -1814,7 +1815,7 @@ def watch_heartbeat(timeout=180):
     while True:
         time.sleep(15)
         if time.time() - _last_ping[0] > timeout:
-            os._exit(0)
+            hard_exit()
 
 
 class PrivateLogHandler(WSGIRequestHandler):
@@ -1831,8 +1832,47 @@ class PrivateLogHandler(WSGIRequestHandler):
             self.path = path
 
 
+class _Server(ThreadedWSGIServer):
+    """Windows'ta bağlantı noktası başka bir soketle paylaşılmaz (SO_EXCLUSIVEADDRUSE). SO_REUSEADDR ile yeni motor,
+    kapanırken takılmış eski kopyanın hâlâ açık soketinin üstüne de sessizce bağlanabiliyordu; istekler eski kopyaya
+    gidip pencere açılış ekranında kalıyordu. Artık bağlanamazsa açıkça hata verir."""
+    if IS_WIN:
+        allow_reuse_address = False
+
+    def server_bind(self):
+        if IS_WIN:
+            self.socket.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_EXCLUSIVEADDRUSE", ~4), 1)
+        super().server_bind()
+
+
+SERVER = None   # çalışan sunucu (serve); kapanırken dinleyen soketi önce kapatmak için
+
+
+class PortBusy(OSError):
+    pass
+
+
+def hard_exit(code=0):
+    """Süreci hemen bitirir. Önce dinleyen soket kapanır: bağlantı noktası, süreç bitmeyi beklerken bile boşalır.
+    Windows'ta sonra TerminateProcess: os._exit (ExitProcess) yüklü kitaplıkların (WebView2, pythonnet) kapanışını
+    beklerken takılabiliyor; bir kurum bilgisayarında kapanan pencerenin süreci yarım saat açık kalmış, sonraki her
+    açılış logoda beklemişti."""
+    if SERVER is not None:
+        try:
+            SERVER.socket.close()
+        except OSError:
+            pass
+    if IS_WIN:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        kernel32.TerminateProcess.argtypes = (ctypes.c_void_p, ctypes.c_uint)
+        kernel32.TerminateProcess(ctypes.c_void_p(-1), code)   # -1: bu süreç
+    os._exit(code)
+
+
 def serve():
     """Sunucuyu çalıştırır (Mac uygulaması ve Windows başlatıcısı bunu kullanır)."""
+    global SERVER
     parent = os.environ.get("PDFSTUDYO_PARENT_PID")
     if parent and parent.isdigit() and not IS_WIN:   # Windows'ta os.kill(pid, 0) sinyal gönderir
         threading.Thread(target=watch_parent, args=(int(parent),), daemon=True).start()
@@ -1841,8 +1881,12 @@ def serve():
     threading.Thread(target=janitor, daemon=True).start()
     threading.Thread(target=fonts.load_index, args=(DATA,), daemon=True).start()
     threading.Thread(target=engine_status, daemon=True).start()   # ana sayfa açılırken hazır olsun
+    try:
+        SERVER = _Server("127.0.0.1", PORT, app, handler=PrivateLogHandler)
+    except SystemExit:   # werkzeug bağlanamayınca sebebi yazıp çıkıyor; çağıran (Windows başlatıcısı) sebebi bilsin
+        raise PortBusy(f"{PORT} numaralı bağlantı noktası kullanımda; Koç PDF Pro motoru başlatılamadı.") from None
     print(f"Koç PDF Pro çalışıyor: http://127.0.0.1:{PORT}/")
-    app.run(host="127.0.0.1", port=PORT, threaded=True, debug=False, request_handler=PrivateLogHandler)
+    SERVER.serve_forever()
 
 
 def main():
