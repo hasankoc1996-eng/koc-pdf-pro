@@ -310,6 +310,38 @@ check("KVKK: ad soyad karartması yalnızca kişileri siler",
       and "can sıkıntısı" in nt and "Tanyeri Sokak" in nt
       and all(v in nt for v in ("Vali Cantürk", "Halil kalite", "Deniz Kuvvetleri", "Mustafa Kemal Bulvarı",
                                 "Ankara Barosu", "ABC ELEKTRONİK")), nt)
+# Atlanan adlar: soyad aynı zamanda şehir/ay adı (Aydın, Ekim), -su ile biten soyad, listede olmayan ad, ayrı
+# Adı:/Soyadı: alanları, bozuk Türkçe harfler (eski yazı tipleri), geniş boşluk, önde soyad, aranan addan soyad
+import person_names as PN
+def _pn(t): return [t[a:b] for a, b in PN.find_names(t)]
+check("KVKK: soyadı şehir, ay ya da lakap olan adlar bulunur; tarih ve yer bildirenler alınmaz",
+      _pn("Av. Mehmet Aydın 12 Ekim'de geldi. Hüseyin Türk, Ayşe Ekim ve davacı Ruken Aydın dinlendi. Hasan Aydın'ın beyanı.")
+      == ["Mehmet Aydın", "Hüseyin Türk", "Ayşe Ekim", "Ruken Aydın", "Hasan Aydın"]
+      and _pn("Ahmet Ekim 2024'te, Ali Pazar günü, Veli Ankara'ya, Mehmet Ankara Barosu'na gitti. AYDIN ASLİYE "
+              "HUKUK MAHKEMESİ, Aydın Valiliği, Aydın Adnan Menderes Üniversitesi, Seyhan Nehri.") == [],
+      _pn("Av. Mehmet Aydın 12 Ekim'de geldi. Hüseyin Türk, Ayşe Ekim ve davacı Ruken Aydın dinlendi. Hasan Aydın'ın beyanı."))
+check("KVKK: -su ile biten soyadlar, listeye eklenen adlar, ayrı Adı:/Soyadı: alanları, önde soyad bulunur",
+      _pn("Cemal Akarsu, Leyla Göksu, Şehmus Kaya, Rojda Yıldırım, Bünyamin Çelik, Poyraz Kurt") ==
+      ["Cemal Akarsu", "Leyla Göksu", "Şehmus Kaya", "Rojda Yıldırım", "Bünyamin Çelik", "Poyraz Kurt"]
+      and _pn("Adı: Ahmet\nSoyadı: Kılıçoğlu\nBaba Adı: Hasan\nDosya Adı: Rapor\nFirma Adı: Koç Holding")
+      == ["Ahmet", "Kılıçoğlu", "Hasan"]
+      and _pn("Davacı: Ruken Kılıç Demir vekili") == ["Ruken Kılıç Demir"]
+      and _pn("KARATAŞ Mustafa ve DEMİRCİ Ayşe imzaladı") == ["KARATAŞ Mustafa", "DEMİRCİ Ayşe"]
+      and _pn("İbrahim Kaya ile MEHMET ALİ YILMAZ") == ["İbrahim Kaya", "MEHMET ALİ YILMAZ"],
+      _pn("Adı: Ahmet\nSoyadı: Kılıçoğlu\nBaba Adı: Hasan\nDosya Adı: Rapor\nFirma Adı: Koç Holding"))
+ad = pymupdf.open(); ap = ad.new_page()
+ap.insert_text((50, 80), "Hüseyin Aydýn ve Fatma Þahin geldi.", fontname="tiro")   # Windows-1254 yazı tipinden bozuk çıkan
+ap.insert_text((50, 100), "Tanik Murat      Gunes ile Leyla    Akarsu.", fontname="tiro")
+ap.insert_htmlbox(pymupdf.Rect(50, 120, 545, 400), "<p>Ruken Kılıçarslan dilekçe verdi. Sayın Kılıçarslan "
+    "bilgilendirildi. Sayın Aydýn aradı; Aydın ilinde oturur. 12 Ekim 2024 günü geldi.</p>")
+ad.save(T / "adlar3.pdf")
+as_ = c.post("/api/edit/open", json={"path": str(T / "adlar3.pdf")}, headers=H).get_json()
+apd = c.post(f"/api/edit/{as_['id']}/personal-data", json={"terms": ["ruken kılıçarslan"]}, headers=H).get_json()
+afound = sorted((it["kind"], it["text"], len(it["rects"])) for it in apd["items"])
+check("KVKK: bozuk harfli, geniş boşluklu adlar ve aranan adın tek geçen soyadı bulunur (şehir ve ay adı değil)",
+      afound == [("ad", "Fatma Þahin", 1), ("ad", "Hüseyin Aydýn", 1), ("ad", "Leyla Akarsu", 1), ("ad", "Murat Gunes", 1),
+                 ("ozel", "ruken kılıçarslan", 1), ("soyad", "Aydýn", 1), ("soyad", "Kılıçarslan", 1)], afound)
+c.post(f"/api/edit/{as_['id']}/close", headers=H); (T / "adlar3.pdf").unlink()
 # Sağ tık › Karart: elle seçilen metnin kutusu (satır yüksekliğinden taşan) komşu satırlara dokunmaz
 sd = pymupdf.open(); sp = sd.new_page()
 for k, line in enumerate(["Birinci satir burada duruyor", "Gizli Kelime ortada yaziyor", "Ucuncu satir da burada"]):

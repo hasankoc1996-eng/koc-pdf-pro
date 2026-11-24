@@ -208,6 +208,9 @@ def find_personal_data(doc, terms=(), limit=2000, scans=None):
     names = [person_names.find_names(text) for text in texts]
     # Bulunan kişilerin soyadları (belgenin tamamından): başka yerde tek başına geçtiklerinde de listelenir (Sayın Şahin)
     family = set().union(*(person_names.surnames(t[a:b]) for t, spans in zip(texts, names) for a, b in spans))
+    # Kullanıcının aradığı ad soyadların soyadları da (listede olmayan adlar: "Ruken Demir" → "Sayın Demir")
+    terms = [t for t in (" ".join(str(t).split()) for t in terms) if len(t) >= 2]
+    family |= set().union(*(person_names.typed_surnames(t) for t in terms))
     found = []
     for i, page in enumerate(doc):
         W, H, rot = page.rect.width, page.rect.height, page.rotation_matrix
@@ -249,7 +252,10 @@ def find_personal_data(doc, terms=(), limit=2000, scans=None):
             if value not in seen:
                 seen.add(value)
                 add("ad", "Ad soyad", value, _context(text, a, b))
-        alone = person_names.find_words(text, family, names[i])
+        # aranan ad soyadın içindeki soyad ayrıca alınmaz: aynı yeri "Aranan" olarak alsın
+        typed = [m.span() for t in terms for m in re.finditer(
+            r"(?<!\w)" + r"\s+".join(re.escape(part) for part in t.split()) + r"(?!\w)", text, re.I)]
+        alone = person_names.find_words(text, family, names[i] + typed)
         for value in dict.fromkeys(text[a:b] for a, b in alone):
             # Aynı kelime başka yerde bir özel adın parçası olabilir (Tanyeri Sokak): yalnızca kabul edilen geçişler
             starts = [m.start() for m in re.finditer(rf"(?<!\w){re.escape(value)}(?!\w)", text)]
@@ -266,10 +272,8 @@ def find_personal_data(doc, terms=(), limit=2000, scans=None):
                 # Vergi no metinde harfe bitişikken alınmadığı gibi sayfada da bir kodun içinden karartılmaz
                 add(kind, label, value, _context(text, m.start(), m.end()), glued=kind == "vkn")
         for term in terms:
-            term = " ".join(str(term).split())
-            if len(term) >= 2:
-                k = text.lower().find(term.lower())
-                add("ozel", "Aranan", term, _context(text, k, k + len(term)) if k >= 0 else term)
+            k = text.lower().find(term.lower())
+            add("ozel", "Aranan", term, _context(text, k, k + len(term)) if k >= 0 else term)
         if len(found) >= limit:
             break
     return found
