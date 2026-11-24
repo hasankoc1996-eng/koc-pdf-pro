@@ -834,7 +834,18 @@ check("Paragraflar: sıkışık tablo hücresi düzenlenebilir, yandaki hücreye
       "error" not in r and cell["right"] < 378, (r.get("error"), cell["right"]))
 
 # --- metin tanıma (OCR)
-import ocr as _ocr
+import ocr as _ocr, threading
+# Windows tanıma işleri tek ve sürekli açık bir iş parçacığında yürür (kısa ömürlü iş parçacığında kurulan motor çöküyordu)
+_w = _ocr._Worker(); _seen = []
+_ts = [threading.Thread(target=lambda: _seen.append(_w.call(lambda: threading.current_thread().ident))) for _ in range(4)]
+[t.start() for t in _ts]; [t.join() for t in _ts]
+try:
+    _w.call(lambda: 1 / 0); _err = None
+except ZeroDivisionError as e:
+    _err = e
+check("Windows tanıma: bütün işler aynı iş parçacığında, hata çağırana döner, iş parçacığı yaşar",
+      len(_seen) == 4 and len(set(_seen)) == 1 and _seen[0] != threading.get_ident() and _err is not None
+      and _w.call(lambda: threading.current_thread().ident) == _seen[0], (_seen, _err))
 if _ocr.available():
     src = pymupdf.open(T / "deneme.pdf"); scan = pymupdf.open()
     for pg in src:

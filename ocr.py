@@ -10,6 +10,7 @@ Her iki motor da aynı biçimi döndürür: görüntü başına satır listesi, 
 import asyncio
 import json
 import os
+import queue
 import shutil
 import subprocess
 import sys
@@ -49,9 +50,47 @@ def helper_path():
 
 
 # ------------------------------------------------------------------ Windows: Windows.Media.Ocr
+# Bütün Windows tanıma işleri (durum sorgusu, motorun kurulması, tanıma) tek ve sürekli açık bir iş parçacığında
+# yapılır. WinRT nesneleri kısa ömürlü bir iş parçacığında kurulup o iş parçacığı bitince (COM kapanınca), sonraki
+# istekte aynı nesneler kullanılırken motor "access violation" ile çöküyordu (açılıştan birkaç dakika sonra ilk
+# taranmış sayfada).
+
+class _Worker:
+    def __init__(self):
+        self._jobs = queue.Queue()
+        self._thread = None
+        self._start = threading.Lock()
+
+    def call(self, fn, *args):
+        """fn(*args) tanıma iş parçacığında çalışır; sonucu (ya da hatası) çağırana döner. İstekler sırayla işlenir."""
+        with self._start:
+            if self._thread is None:
+                self._thread = threading.Thread(target=self._loop, name="windows-ocr", daemon=True)
+                self._thread.start()
+        done, box = threading.Event(), {}
+        self._jobs.put((fn, args, done, box))
+        done.wait()
+        if "error" in box:
+            raise box["error"]
+        return box.get("value")
+
+    def _loop(self):
+        _win_apartment()
+        while True:
+            fn, args, done, box = self._jobs.get()
+            try:
+                box["value"] = fn(*args)
+            except BaseException as e:   # hata çağırana iletilir, iş parçacığı yaşamaya devam eder
+                box["error"] = e
+            finally:
+                done.set()
+
+
+_worker = _Worker()
+
 
 def _win_apartment():
-    """WinRT, çağrıldığı iş parçacığında COM'un başlatılmış olmasını ister (sunucu her isteği ayrı iş parçacığında işler)."""
+    """WinRT, çağrıldığı iş parçacığında COM'un başlatılmış olmasını ister."""
     try:
         from winrt.runtime import ApartmentType, init_apartment
         init_apartment(ApartmentType.MULTI_THREADED)
@@ -59,9 +98,19 @@ def _win_apartment():
         pass   # bu iş parçacığında zaten başlatılmış
 
 
+_engine = None   # tanıma iş parçacığında bir kez kurulur, hep orada kullanılır
+
+
 def _win_engine():
-    """Windows'un tanıma motoru: önce Türkçe, yoksa kullanıcının Windows dilleri. Hiçbiri yoksa None."""
-    _win_apartment()
+    """Windows'un tanıma motoru: önce Türkçe, yoksa kullanıcının Windows dilleri. Hiçbiri yoksa None.
+    Yalnızca tanıma iş parçacığında çağrılır (_worker)."""
+    global _engine
+    if _engine is None:
+        _engine = _create_engine()
+    return _engine
+
+
+def _create_engine():
     from winrt.windows.globalization import Language
     from winrt.windows.media.ocr import OcrEngine
     for tag in ("tr-TR", "tr"):
@@ -86,7 +135,7 @@ def windows_status():
     global _win_status
     with _win_lock:
         if _win_status is None:
-            _win_status = _compute_windows_status()
+            _win_status = _worker.call(_compute_windows_status)
     return _win_status
 
 
@@ -111,7 +160,14 @@ def notice():
 
 
 def _recognize_windows(images):
-    engine = _win_engine() if windows_status()[0] else None
+    if not windows_status()[0]:
+        raise ToolError("Bu bilgisayarda metin tanıma bulunamadı. " + TR_LANGUAGE_HINT)
+    return _worker.call(_recognize_windows_now, images)
+
+
+def _recognize_windows_now(images):
+    """Tanıma iş parçacığında çalışır."""
+    engine = _win_engine()
     if engine is None:
         raise ToolError("Bu bilgisayarda metin tanıma bulunamadı. " + TR_LANGUAGE_HINT)
     from winrt.windows.graphics.imaging import BitmapDecoder
@@ -140,7 +196,6 @@ def _recognize_windows(images):
     async def run():
         return [await one(p) for p in images]
 
-    _win_apartment()
     try:
         return asyncio.run(run())
     except Exception as e:
