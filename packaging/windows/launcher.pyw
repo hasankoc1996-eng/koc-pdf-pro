@@ -709,6 +709,11 @@ class Host:
                 client, mapi = default_mail_client()
                 if client and "outlook" in client.lower():
                     attached = run_waiting(lambda: outlook_mail(*args), 25)
+                    # Outlook'un kendisi hata verdiyse (ör. E_ABORT "İşlem iptal edildi": Outlook açılırken bir
+                    # pencere bekliyor) Outlook'un Basit MAPI yolu denenir; o da olmazsa mailto
+                    if not attached and mapi:
+                        log("Outlook ile açılamadı; Basit MAPI deneniyor.")
+                        attached = run_waiting(lambda: mapi_mail(*args), 4)
                 elif mapi:
                     attached = run_waiting(lambda: mapi_mail(*args), 4)
                 log(f"Sorun raporu: e-posta programı {client or 'yok'}, rapor {'ekli açıldı' if attached else 'eklenemedi'}")
